@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from . import __version__
-from .api import documents
+from .api import documents, reports, search
 from .config import get_settings
 from .database import init_db
 
@@ -29,6 +29,8 @@ app = FastAPI(
 )
 
 app.include_router(documents.router, prefix="/api/v1")
+app.include_router(search.router, prefix="/api/v1")
+app.include_router(reports.router, prefix="/api/v1")
 
 
 @app.get("/health", tags=["system"])

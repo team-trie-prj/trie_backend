@@ -40,8 +40,8 @@ class Settings(BaseSettings):
 
     # --- LLM / VLM (phases ②③⑤) ---
     llm_provider: str = "gemini"
-    llm_model: str = "gemini-2.0-flash"
-    vlm_model: str = "gemini-2.0-flash"
+    llm_model: str = "gemini-2.5-flash"
+    vlm_model: str = "gemini-2.5-flash"
     gemini_api_key: str = ""
 
     def ensure_dirs(self) -> None:

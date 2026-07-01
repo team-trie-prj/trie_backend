@@ -28,6 +28,9 @@ torch>=2.2                 # CPU build on Windows by default (free / offline)
 # --- ⑤ Vector DB ---
 chromadb>=0.5
 
+# --- ② Multimodal LLM / VLM (Google Gemini free tier) ---
+google-genai>=1.0
+
 # --- Utils ---
 numpy>=1.26
 

@@ -6,20 +6,30 @@
 
 ## 스택
 FastAPI · Python 3.10 · SQLAlchemy · PostgreSQL(운영) / SQLite(개발) · ChromaDB ·
-BGE-m3(로컬 임베딩, 무료) · Cross-Encoder(재정렬) · LLM/VLM = Gemini 무료 티어 / Ollama
+BGE-m3(로컬 임베딩, 무료) · Cross-Encoder(재정렬) · LLM/VLM = Gemini 무료 티어(gemini-2.5-flash) / Ollama
 
 ---
 
 ## vikira 담당 — RAG / AI 파이프라인
 
-| 단계 | 작업 | 모듈 | 상태 |
-|---|---|---|---|
-| ① | 문서 파싱 + 노이즈 필터링 | `app/pipeline/parsing.py` | ✅ |
-| ② | 시맨틱 청킹 + 오버랩 | `app/pipeline/chunking.py` | ✅ |
-| ③ | BGE-m3 임베딩 | `app/pipeline/embedding.py` | ✅ |
-| ⑤ | ChromaDB 인덱싱/적재 | `app/vectorstore/chroma.py` | ✅ |
-| — | 오케스트레이션 | `app/services/ingestion.py` | ✅ |
-| 이후 | VLM 멀티모달 · 에이전트 라우팅 · 하이브리드 검색 · 재정렬 · 보고서 생성 | (예정) | ⏳ |
+### ✅ 수집 파이프라인 (ingestion)
+| 작업 | 모듈 |
+|---|---|
+| 문서 파싱 + 노이즈 필터링 (PDF/DOCX) | `app/pipeline/parsing.py` |
+| 시맨틱 청킹 + 오버랩 | `app/pipeline/chunking.py` |
+| BGE-m3 임베딩 (지연로딩 + 무비용 해싱 폴백) | `app/pipeline/embedding.py` |
+| ChromaDB 코사인 인덱싱/적재 | `app/vectorstore/chroma.py` |
+| 수집 오케스트레이션 | `app/services/ingestion.py` |
+
+### ✅ 멀티모달 질의 분석 (multimodal)
+| 작업 | 모듈 |
+|---|---|
+| VLM 이미지 시각적 맥락 추출 | `app/services/multimodal.py` |
+| 텍스트 질의 + 이미지 맥락 논리적 병합 | `app/services/multimodal.py` |
+| LLM/VLM 클라이언트 (Gemini + Mock 폴백) | `app/llm/` |
+
+### ⏳ 이후
+에이전트(도메인 태깅·Intent·라우팅·모호성) · 검색 실행(벡터 코사인·RDBMS 키워드/정규식·Cross-Encoder 재정렬·컨텍스트 절삭) · 보고서 메타 프롬프팅
 
 > 인증/보안/공공API 연동/DB 동기화/세션·이력 등은 김예담 담당과 맞물린다.
 > 업로드 통신 로직은 김예담 소유이며, 본 파이프라인의 `ingestion` 서비스를 호출하는 구조.
@@ -57,6 +67,17 @@ python -m scripts.ingest_sample "docs/sample.pdf" --backend hashing --query "포
 - `bge-m3` : 실제 BAAI/bge-m3 (로컬, 무료, 한국어 우수) — 최초 실행 시 모델 자동 다운로드
 - `hashing`: zero-dependency 대체 임베더 (개발/테스트/오프라인)
 
+## 멀티모달 질의 분석 (CLI 하니스)
+
+```bash
+# 실제 Gemini VLM (.env 의 GEMINI_API_KEY 필요, 기본 모델 gemini-2.5-flash)
+python -m scripts.analyze_sample --text "이 도로 보수 절차" --image road.png --domain road
+
+# API 없이 구조 검증 (Mock 폴백)
+python -m scripts.analyze_sample --text "교통 정체 원인" --provider mock
+```
+> `LLM_PROVIDER` 로 제어. 키가 없거나 `mock` 이면 자동으로 Mock 클라이언트로 폴백한다.
+
 ## 테스트
 ```bash
 pytest            # torch/모델 불필요 (HashingEmbedder 사용)
@@ -68,11 +89,12 @@ app/
   config.py            설정(.env)
   database.py          SQLAlchemy 엔진/세션
   models/              KnowledgeDocument·DocumentChunk·VisualResource·GeneratedReport
-  pipeline/            parsing · chunking · embedding   (vikira 단계 ①②③)
-  vectorstore/         chroma                            (vikira 단계 ⑤)
-  services/ingestion   수집 오케스트레이션
+  pipeline/            parsing · chunking · embedding    (수집)
+  vectorstore/         chroma (ChromaDB 코사인)           (수집)
+  llm/                 base · gemini · mock              (멀티모달 LLM/VLM)
+  services/            ingestion(수집) · multimodal(VLM 질의 분석)
   api/documents        수집/조회 API (검증용 하니스)
-scripts/ingest_sample  CLI 하니스
-tests/                 파이프라인 단위 테스트
+scripts/               ingest_sample · analyze_sample    (CLI 하니스)
+tests/                 파이프라인 · 멀티모달 단위 테스트
 data/                  로컬 산출물(sqlite·chroma·uploads) — git 제외
 ```

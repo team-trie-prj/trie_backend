@@ -41,6 +41,13 @@ class Settings(BaseSettings):
     # --- ③ Agent ---
     agent_ambiguity_threshold: float = 0.5
 
+    # --- ④ Search / Rerank ---
+    rerank_backend: str = "cross-encoder"  # cross-encoder | none
+    rerank_model: str = "BAAI/bge-reranker-v2-m3"
+    search_top_k: int = 20  # 재정렬 전 후보 수
+    search_final_k: int = 8  # 재정렬/절삭 후 최종 수
+    context_max_tokens: int = 3000  # LLM 컨텍스트 절삭 예산
+
     # --- LLM / VLM (phases ②③⑤) ---
     llm_provider: str = "gemini"
     llm_model: str = "gemini-2.5-flash"

@@ -6,7 +6,7 @@
 
 ## 스택
 FastAPI · Python 3.10 · SQLAlchemy · PostgreSQL(운영) / SQLite(개발) · ChromaDB ·
-BGE-m3(로컬 임베딩, 무료) · Cross-Encoder(재정렬) · LLM/VLM = Gemini 무료 티어(gemini-2.5-flash) / Ollama
+BGE-m3(로컬 임베딩, 무료) · Cross-Encoder(bge-reranker-v2-m3 재정렬) · LangGraph(에이전트) · LLM/VLM = Gemini 무료 티어(gemini-2.5-flash) / Ollama
 
 ---
 
@@ -36,8 +36,17 @@ BGE-m3(로컬 임베딩, 무료) · Cross-Encoder(재정렬) · LLM/VLM = Gemini
 | 질의 모호성 평가(Low-context) + 재질의 템플릿 | `app/agent/analyzer.py`, `templates.py` |
 | 하이브리드 RAG 탐색 경로 자율 선택 | `app/agent/graph.py` (analyze→clarify/route) |
 
+### ✅ 검색 실행 (search)
+| 작업 | 모듈 |
+|---|---|
+| Vector 코사인 의미 탐색 | `app/search/vector.py` |
+| RDBMS 키워드/정규식 정밀 탐색 | `app/search/keyword.py` |
+| Cross-Encoder 재정렬 (bge-reranker-v2-m3) | `app/search/rerank.py` |
+| LLM 컨텍스트 절삭 | `app/search/truncate.py` |
+| 검색 오케스트레이션 (route→실행→병합→재정렬→절삭) | `app/services/search_service.py` |
+
 ### ⏳ 이후
-검색 실행(벡터 코사인·RDBMS 키워드/정규식·Cross-Encoder 재정렬·컨텍스트 절삭) · 보고서 메타 프롬프팅
+보고서 생성 — 검색 결과 + 서식 결합 LLM 메타 프롬프팅
 
 > 인증/보안/공공API 연동/DB 동기화/세션·이력 등은 김예담 담당과 맞물린다.
 > 업로드 통신 로직은 김예담 소유이며, 본 파이프라인의 `ingestion` 서비스를 호출하는 구조.
@@ -94,6 +103,15 @@ python -m scripts.agent_sample --text "그거 알려줘" --provider mock
 ```
 > 결과: domain · intent · route(`vector|keyword|hybrid|public_api|clarify`) · keywords, 모호 시 재질의 template.
 
+## 검색 실행 (CLI 하니스)
+
+```bash
+# 에이전트 라우팅 → 검색까지 자동 (end-to-end)
+python -m scripts.search_sample --query "포트홀 보수 절차와 규정" --auto
+# 모델 없이 검증: 재정렬 생략
+python -m scripts.search_sample --query "포트홀" --route keyword --rerank none
+```
+
 ## 테스트
 ```bash
 pytest            # torch/모델 불필요 (HashingEmbedder 사용)
@@ -109,9 +127,10 @@ app/
   vectorstore/         chroma (ChromaDB 코사인)           (수집)
   llm/                 base · gemini · mock              (멀티모달 LLM/VLM)
   agent/               analyzer · graph(LangGraph) · templates  (에이전트 라우팅)
-  services/            ingestion(수집) · multimodal(VLM 질의 분석)
+  search/              vector · keyword · rerank · truncate      (검색 실행)
+  services/            ingestion · multimodal · search_service
   api/documents        수집/조회 API (검증용 하니스)
-scripts/               ingest_sample · analyze_sample · agent_sample  (CLI 하니스)
-tests/                 파이프라인 · 멀티모달 · 에이전트 단위 테스트
+scripts/               ingest_sample · analyze_sample · agent_sample · search_sample
+tests/                 파이프라인 · 멀티모달 · 에이전트 · 검색 단위 테스트
 data/                  로컬 산출물(sqlite·chroma·uploads) — git 제외
 ```

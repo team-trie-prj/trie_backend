@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     chunk_overlap_sentences: int = 1
     semantic_breakpoint_percentile: int = 90
 
+    # --- ③ Agent ---
+    agent_ambiguity_threshold: float = 0.5
+
     # --- LLM / VLM (phases ②③⑤) ---
     llm_provider: str = "gemini"
     llm_model: str = "gemini-2.5-flash"

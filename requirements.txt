@@ -31,6 +31,9 @@ chromadb>=0.5
 # --- ② Multimodal LLM / VLM (Google Gemini free tier) ---
 google-genai>=1.0
 
+# --- ③ Agent orchestration ---
+langgraph>=0.2
+
 # --- Utils ---
 numpy>=1.26
 

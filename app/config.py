@@ -68,6 +68,9 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60
     refresh_token_expire_days: int = 14
 
+    # --- Security: 민감정보 암호화 (F5, Fernet) ---
+    app_encryption_key: str = ""  # 비면 jwt_secret_key 에서 파생
+
     @property
     def resolved_auth_provider(self) -> str:
         """client_id 미설정 시 mock 폴백 (vikira LLM mock 패턴과 동일)."""

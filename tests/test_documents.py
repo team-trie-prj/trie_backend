@@ -1,0 +1,101 @@
+"""문서 통신 (F2) + 메타 동기화 (F7) — ingest/vector 는 스텁으로 격리."""
+
+from __future__ import annotations
+
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def _stub_pipeline(monkeypatch):
+    """실제 임베딩(BGE-m3)·ChromaDB 없이 전송/메타/삭제 로직만 검증."""
+    from app.models import KnowledgeDocument
+    from app.services import document_service
+    from app.services.ingestion import IngestionResult
+
+    def fake_ingest(path, db, domain="etc", title=None, preview=3):
+        doc = KnowledgeDocument(
+            title=title or "t", source_path=path, doc_type="txt",
+            domain=domain, status="indexed", char_count=5, chunk_count=1, meta={},
+        )
+        db.add(doc)
+        db.commit()
+        db.refresh(doc)
+        return IngestionResult(
+            document_id=doc.id, title=doc.title, doc_type="txt", domain=domain,
+            status="indexed", char_count=5, chunk_count=1, elapsed_sec=0.0, chunk_preview=[],
+        )
+
+    class _FakeStore:
+        def delete_by_document(self, document_id):
+            pass
+
+    monkeypatch.setattr(document_service, "ingest_file", fake_ingest)
+    monkeypatch.setattr(document_service, "get_vector_store", lambda: _FakeStore())
+
+
+def _hdr(t: str) -> dict:
+    return {"Authorization": f"Bearer {t}"}
+
+
+def test_upload_requires_auth(client):
+    r = client.post(
+        "/api/v1/documents",
+        files=[("files", ("a.txt", b"hello", "text/plain"))],
+        data={"domain": "road"},
+    )
+    assert r.status_code == 401
+
+
+def test_multi_upload_and_metadata_sync(client, token):
+    files = [
+        ("files", ("a.txt", b"aaa", "text/plain")),
+        ("files", ("b.txt", b"bbb", "text/plain")),
+    ]
+    r = client.post("/api/v1/documents", headers=_hdr(token), files=files, data={"domain": "road"})
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert len(body["items"]) == 2
+    assert body["failed"] == []
+    assert body["items"][0]["uploaded_by"] >= 1  # F7 업로더 동기화
+    assert body["items"][0]["original_filename"] in ("a.txt", "b.txt")
+    assert body["items"][0]["domain"] == "road"
+
+
+def test_metadata_persisted_in_db(client, token, db):
+    up = client.post(
+        "/api/v1/documents", headers=_hdr(token),
+        files=[("files", ("m.txt", b"z", "text/plain"))], data={"domain": "safety"},
+    ).json()
+    did = up["items"][0]["document_id"]
+    from app.models import KnowledgeDocument
+
+    doc = db.get(KnowledgeDocument, did)
+    assert doc is not None
+    assert doc.meta.get("uploaded_by") >= 1              # F7: RDBMS 메타 동기화
+    assert doc.meta.get("original_filename") == "m.txt"
+
+
+def test_unsupported_ext_goes_to_failed(client, token):
+    r = client.post(
+        "/api/v1/documents", headers=_hdr(token),
+        files=[("files", ("bad.zip", b"x", "application/zip"))], data={"domain": "etc"},
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["items"] == []
+    assert len(body["failed"]) == 1
+    assert "지원하지 않는" in body["failed"][0]["detail"]
+
+
+def test_delete_document(client, token):
+    up = client.post(
+        "/api/v1/documents", headers=_hdr(token),
+        files=[("files", ("a.txt", b"x", "text/plain"))], data={"domain": "etc"},
+    ).json()
+    did = up["items"][0]["document_id"]
+    assert client.delete(f"/api/v1/documents/{did}", headers=_hdr(token)).status_code == 200
+    assert client.get(f"/api/v1/documents/{did}").status_code == 404
+
+
+def test_delete_missing_404(client, token):
+    assert client.delete("/api/v1/documents/99999", headers=_hdr(token)).status_code == 404

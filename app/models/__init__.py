@@ -8,6 +8,7 @@
 공용 스키마 — 세부 동기화/정제는 김예담(RDBMS 메타데이터 동기화)과 맞물림.
 """
 
+from .api_key import ApiKey
 from .knowledge import DocStatus, DocumentChunk, Domain, KnowledgeDocument
 from .report import GeneratedReport
 from .user import RefreshToken, User
@@ -22,4 +23,5 @@ __all__ = [
     "GeneratedReport",
     "User",
     "RefreshToken",
+    "ApiKey",
 ]

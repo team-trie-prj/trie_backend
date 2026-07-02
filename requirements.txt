@@ -41,3 +41,7 @@ numpy>=1.26
 ruff>=0.4
 black>=24.0
 pytest>=8.0
+
+# --- Auth : OAuth2 / JWT (김예담) ---
+python-jose[cryptography]>=3.3
+httpx>=0.27

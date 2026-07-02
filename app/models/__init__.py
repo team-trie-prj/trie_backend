@@ -10,6 +10,7 @@
 
 from .knowledge import DocStatus, DocumentChunk, Domain, KnowledgeDocument
 from .report import GeneratedReport
+from .user import RefreshToken, User
 from .visual import VisualResource
 
 __all__ = [
@@ -19,4 +20,6 @@ __all__ = [
     "DocumentChunk",
     "VisualResource",
     "GeneratedReport",
+    "User",
+    "RefreshToken",
 ]

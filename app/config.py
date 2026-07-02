@@ -54,6 +54,27 @@ class Settings(BaseSettings):
     vlm_model: str = "gemini-2.5-flash"
     gemini_api_key: str = ""
 
+    # --- Auth: OAuth2 (Kakao) --- (김예담)
+    auth_provider: str = "kakao"  # kakao | mock  (client_id 없으면 mock 자동 폴백)
+    kakao_client_id: str = ""
+    kakao_client_secret: str = ""
+    kakao_redirect_uri: str = "http://localhost:5173/oauth/kakao/callback"
+    kakao_token_url: str = "https://kauth.kakao.com/oauth/token"
+    kakao_userinfo_url: str = "https://kapi.kakao.com/v2/user/me"
+
+    # --- Auth: JWT ---
+    jwt_secret_key: str = "dev-secret-change-me-in-production"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60
+    refresh_token_expire_days: int = 14
+
+    @property
+    def resolved_auth_provider(self) -> str:
+        """client_id 미설정 시 mock 폴백 (vikira LLM mock 패턴과 동일)."""
+        if self.auth_provider == "kakao" and not self.kakao_client_id:
+            return "mock"
+        return self.auth_provider
+
     def ensure_dirs(self) -> None:
         """로컬 데이터 디렉터리 보장 (sqlite / uploads / chroma)."""
         for path in (self.upload_dir, self.chroma_persist_dir):

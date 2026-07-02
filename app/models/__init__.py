@@ -10,6 +10,7 @@
 
 from .api_key import ApiKey
 from .knowledge import DocStatus, DocumentChunk, Domain, KnowledgeDocument
+from .public_catalog import PublicApiCatalog
 from .report import GeneratedReport
 from .user import RefreshToken, User
 from .visual import VisualResource
@@ -24,4 +25,5 @@ __all__ = [
     "User",
     "RefreshToken",
     "ApiKey",
+    "PublicApiCatalog",
 ]

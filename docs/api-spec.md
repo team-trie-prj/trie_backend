@@ -22,10 +22,10 @@
 | F5 API Key 등록 | `POST /api-keys` | ✅ |
 | F5 API Key 목록 | `GET /api-keys` | ✅ |
 | F5 API Key 삭제 | `DELETE /api-keys/{name}` | ✅ |
-| F6 공공 카탈로그 등록 | `POST /public-data/catalog` | 📝 |
-| F6 공공 카탈로그 목록/단건/삭제 | `GET·DELETE /public-data/catalog[/{id}]` | 📝 |
-| F9·F10 공공 On-demand 호출 | `POST /public-data/{catalog_id}/fetch` | 📝 |
-| F8 세션 UUID 발급 | `POST /sessions` | 📝 |
+| F6 공공 카탈로그 등록 | `POST /public-data/catalog` | ✅ |
+| F6 공공 카탈로그 목록/단건/삭제 | `GET·DELETE /public-data/catalog[/{id}]` | ✅ |
+| F9·F10 공공 On-demand 호출 | `POST /public-data/{catalog_id}/fetch` | ✅ |
+| F8 세션 UUID 발급 | `POST /sessions` | ✅ |
 
 > F7(RDBMS 메타데이터 동기화)은 별도 엔드포인트가 아니라 F2 업로드/삭제 시 업로더·시각·도메인 메타를 PostgreSQL 에 동기화하는 **횡단 기능**이다.
 
@@ -102,25 +102,37 @@ API Key 를 **소스코드에서 분리**하고 **RDBMS 에 암호화(Fernet)** 
 
 ---
 
-## 4. 공공데이터 (public-data) — F6·F9·F10  📝(예정)
+## 4. 공공데이터 (public-data) — F6·F9·F10
 
-### 📝 카탈로그 메타 등록 (F6)
-- `POST /api/v1/public-data/catalog` — 등록: `{ name, provider, domain, endpoint, params_spec:[{name,type,required,default}], description }`
-- `GET /api/v1/public-data/catalog` · `GET .../{id}` · `DELETE .../{id}`
+### ✅ 카탈로그 메타 등록 (F6)
+- 🔒 `POST /api/v1/public-data/catalog` — 등록(중복 name → `409`)
+  ```json
+  { "name": "에어코리아 대기오염정보", "provider": "한국환경공단", "domain": "traffic",
+    "endpoint": "http://apis.data.go.kr/B552584/...", "http_method": "GET",
+    "params_spec": [ { "name": "sidoName", "type": "str", "required": true, "map_from": "region" },
+                     { "name": "numOfRows", "type": "int", "default": 10 } ],
+    "api_key_name": "data_go_kr", "api_key_param": "serviceKey", "description": "..." }
+  ```
+  - `map_from`: 질의 엔티티 별칭(F9 매핑용) · `api_key_name`: §3 API Key(F5) 참조 — 호출 시 복호화 주입
+- `GET /api/v1/public-data/catalog?domain=` · `GET .../catalog/{id}` · 🔒 `DELETE .../catalog/{id}` (`404`)
 
-### 📝 On-demand 실시간 호출 (F9 매핑·조립 + F10 호출)
-- `POST /api/v1/public-data/{catalog_id}/fetch`
-  - 요청: `{ "entities": { ... } }` → 카탈로그 `params_spec` 로 **파라미터 매핑·조립(F9)** → 외부 API **실시간 호출(F10, httpx)** → JSON 파싱 반환
-  - 응답: `{ "source", "api_name", "items":[...] }`
-  - 서비스 키는 §3 `api_key_service` 에서 복호화해 사용.
+### ✅ On-demand 실시간 호출 (F9 매핑·조립 + F10 호출)
+- 🔒 `POST /api/v1/public-data/{catalog_id}/fetch`
+  - **요청**: `{ "entities": { "region": "대전" } }` → `params_spec` 기반 **매핑(별칭)·기본값·타입 변환(F9)** → httpx **실시간 호출(F10)** → JSON 파싱(data.go.kr 표준 `response.body.items.item` 경로 자동 추출)
+  - **응답**: `{ "catalog_id", "api_name", "provider", "endpoint", "assembled_params"(키 마스킹), "status_code", "items", "data", "elapsed_sec" }`
+  - **에러**: `422`(필수 파라미터 누락/타입 변환 실패) · `502`(업스트림 4xx/5xx·통신 실패) · `504`(타임아웃, `PUBLIC_API_TIMEOUT_SEC`)
+  - 서비스 키는 **응답에서 마스킹**되어 평문 비노출.
 
 ---
 
-## 5. 세션 UUID (sessions) — F8  📝(예정)
-- `POST /api/v1/sessions` — **매 쿼리 난수 세션 UUID 발급**(캐시 버그 차단). 응답 `{ "session_uuid": "..." }`.
+## 5. 세션 UUID (sessions) — F8
+
+### ✅ POST `/api/v1/sessions`
+**매 쿼리 난수 세션 UUID(v4) 발급**(캐시 버그 차단) + `Cache-Control: no-store` 강제.
+**응답**: `{ "session_uuid": "9f1c...", "issued_at": "..." }`
 - ※ 세션 *이력 로깅/복원*은 본 범위 밖(UUID 생성까지).
 
 ---
 
 ## 데이터 모델
-[entity.md](entity.md) 참조. 김예담 모델: **User · RefreshToken · ApiKey**(암호화) · **PublicApiCatalog**(예정) · 세션 UUID. (SQLAlchemy, 물리 컬럼 snake_case)
+[entity.md](entity.md) 참조. 김예담 모델: **User · RefreshToken · ApiKey**(암호화) · **PublicApiCatalog** · 세션 UUID(무저장 발급). (SQLAlchemy, 물리 컬럼 snake_case)

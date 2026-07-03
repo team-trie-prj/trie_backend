@@ -6,7 +6,6 @@
 
 from __future__ import annotations
 
-import datetime
 import os
 import uuid
 
@@ -18,6 +17,7 @@ from ..config import get_settings
 from ..models import KnowledgeDocument
 from ..pipeline.parsing import SUPPORTED_EXTS
 from ..services.ingestion import ingest_file
+from ..utils import utcnow
 from ..vectorstore import get_vector_store
 
 
@@ -49,7 +49,7 @@ def upload_one(db: Session, file: UploadFile, domain: str, uploaded_by: int) -> 
             {
                 "uploaded_by": uploaded_by,
                 "original_filename": file.filename,
-                "uploaded_at": datetime.datetime.utcnow().isoformat(),
+                "uploaded_at": utcnow().isoformat(),
             }
         )
         doc.meta = meta

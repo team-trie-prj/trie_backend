@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class KakaoLoginRequest(BaseModel):
@@ -15,13 +15,12 @@ class RefreshRequest(BaseModel):
 
 
 class UserOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
     email: str | None = None
     provider: str
-
-    class Config:
-        from_attributes = True
 
 
 class TokenResponse(BaseModel):

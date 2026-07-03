@@ -12,6 +12,7 @@ from sqlalchemy import Boolean, DateTime, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..database import Base
+from ..utils import utcnow
 
 
 class User(Base):
@@ -25,12 +26,8 @@ class User(Base):
     email: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     provider: Mapped[str] = mapped_column(String(20))  # kakao ...
     provider_id: Mapped[str] = mapped_column(String(64))
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        default=datetime.datetime.utcnow
-    )
-    updated_at: Mapped[datetime.datetime] = mapped_column(
-        default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow
-    )
+    created_at: Mapped[datetime.datetime] = mapped_column(default=utcnow)
+    updated_at: Mapped[datetime.datetime] = mapped_column(default=utcnow, onupdate=utcnow)
 
     refresh_tokens: Mapped[list[RefreshToken]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
@@ -47,8 +44,6 @@ class RefreshToken(Base):
     token: Mapped[str] = mapped_column(String(512), unique=True, index=True)
     expired_at: Mapped[datetime.datetime] = mapped_column(DateTime)
     revoked: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        default=datetime.datetime.utcnow
-    )
+    created_at: Mapped[datetime.datetime] = mapped_column(default=utcnow)
 
     user: Mapped[User] = relationship(back_populates="refresh_tokens")

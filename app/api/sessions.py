@@ -7,12 +7,12 @@
 
 from __future__ import annotations
 
-import datetime
 import uuid
 
 from fastapi import APIRouter, Response
 
 from ..schemas.public_data import SessionUUIDOut
+from ..utils import utcnow
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
@@ -21,7 +21,4 @@ router = APIRouter(prefix="/sessions", tags=["sessions"])
 def create_session_uuid(response: Response) -> SessionUUIDOut:
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
     response.headers["Pragma"] = "no-cache"
-    return SessionUUIDOut(
-        session_uuid=str(uuid.uuid4()),
-        issued_at=datetime.datetime.utcnow(),
-    )
+    return SessionUUIDOut(session_uuid=str(uuid.uuid4()), issued_at=utcnow())

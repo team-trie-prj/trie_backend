@@ -11,6 +11,7 @@ import uuid
 from jose import jwt
 
 from ..config import get_settings
+from ..utils import utcnow
 
 ACCESS = "access"
 REFRESH = "refresh"
@@ -23,7 +24,7 @@ def _epoch(dt: datetime.datetime) -> int:
 
 def _encode(user_id: int, token_type: str, delta: datetime.timedelta) -> tuple[str, datetime.datetime]:
     settings = get_settings()
-    now = datetime.datetime.utcnow()
+    now = utcnow()
     exp = now + delta
     payload = {
         "sub": str(user_id),

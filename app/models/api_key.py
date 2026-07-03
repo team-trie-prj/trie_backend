@@ -11,6 +11,7 @@ from sqlalchemy import String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..database import Base
+from ..utils import utcnow
 
 
 class ApiKey(Base):
@@ -21,9 +22,5 @@ class ApiKey(Base):
     provider: Mapped[str | None] = mapped_column(String(64), nullable=True)
     secret_encrypted: Mapped[str] = mapped_column(Text)
     description: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        default=datetime.datetime.utcnow
-    )
-    updated_at: Mapped[datetime.datetime] = mapped_column(
-        default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow
-    )
+    created_at: Mapped[datetime.datetime] = mapped_column(default=utcnow)
+    updated_at: Mapped[datetime.datetime] = mapped_column(default=utcnow, onupdate=utcnow)

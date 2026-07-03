@@ -14,6 +14,7 @@ from sqlalchemy import JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..database import Base
+from ..utils import utcnow
 
 
 class PublicApiCatalog(Base):
@@ -29,9 +30,5 @@ class PublicApiCatalog(Base):
     api_key_name: Mapped[str | None] = mapped_column(String(64), nullable=True)
     api_key_param: Mapped[str] = mapped_column(String(64), default="serviceKey")
     description: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        default=datetime.datetime.utcnow
-    )
-    updated_at: Mapped[datetime.datetime] = mapped_column(
-        default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow
-    )
+    created_at: Mapped[datetime.datetime] = mapped_column(default=utcnow)
+    updated_at: Mapped[datetime.datetime] = mapped_column(default=utcnow, onupdate=utcnow)

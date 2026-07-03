@@ -75,6 +75,20 @@ def test_metadata_persisted_in_db(client, token, db):
     assert doc.meta.get("original_filename") == "m.txt"
 
 
+def test_upload_too_large_goes_to_failed(client, token, monkeypatch):
+    """용량 한도 초과 파일은 저장되지 않고 failed(413 사유)로 분리된다."""
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "max_upload_mb", 0)  # 모든 파일이 한도 초과
+    r = client.post(
+        "/documents", headers=_hdr(token),
+        files=[("files", ("big.txt", b"x" * 2048, "text/plain"))], data={"domain": "etc"},
+    )
+    body = r.json()
+    assert body["items"] == []
+    assert "용량 초과" in body["failed"][0]["detail"]
+
+
 def test_unsupported_ext_goes_to_failed(client, token):
     r = client.post(
         "/documents", headers=_hdr(token),

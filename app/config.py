@@ -22,6 +22,7 @@ class Settings(BaseSettings):
 
     # --- Storage ---
     upload_dir: str = "./data/uploads"
+    max_upload_mb: int = 50  # 문서 업로드 파일당 용량 한도 (F2, 초과 시 413)
     chroma_persist_dir: str = "./data/chroma"
     chroma_collection: str = "knowledge_documents"
 

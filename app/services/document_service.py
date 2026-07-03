@@ -21,11 +21,34 @@ from ..utils import utcnow
 from ..vectorstore import get_vector_store
 
 
+_CHUNK_BYTES = 1024 * 1024  # 1 MiB — 스트리밍 저장 단위
+
+
 def _save_upload(file: UploadFile, ext: str) -> str:
+    """청크 스트리밍 저장 — 대용량 파일의 전체 메모리 적재 방지 + 용량 한도(413).
+
+    한도 초과·저장 실패 시 부분 저장 파일을 정리한다.
+    """
     settings = get_settings()
+    max_bytes = int(settings.max_upload_mb * 1024 * 1024)
     saved_path = os.path.join(settings.upload_dir, f"{uuid.uuid4().hex}{ext}")
-    with open(saved_path, "wb") as f:
-        f.write(file.file.read())
+    written = 0
+    try:
+        with open(saved_path, "wb") as out:
+            while chunk := file.file.read(_CHUNK_BYTES):
+                written += len(chunk)
+                if written > max_bytes:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"파일 용량 초과: 최대 {settings.max_upload_mb}MB",
+                    )
+                out.write(chunk)
+    except BaseException:
+        try:
+            os.remove(saved_path)
+        except OSError:
+            pass
+        raise
     return saved_path
 
 

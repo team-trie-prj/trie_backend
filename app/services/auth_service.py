@@ -7,10 +7,22 @@ AI 추론과 무관하며 vikira 파이프라인을 호출하지 않는다.
 from __future__ import annotations
 
 import hashlib
+import logging
 from dataclasses import dataclass
 
 import httpx
 from fastapi import HTTPException
+
+logger = logging.getLogger(__name__)
+
+
+def _kakao_error(res: httpx.Response) -> str:
+    """카카오 오류 응답에서 KOE 코드·설명 추출(진단용)."""
+    try:
+        body = res.json()
+        return f"{body.get('error_code') or body.get('error')}: {body.get('error_description') or body}"
+    except Exception:  # noqa: BLE001
+        return res.text[:200]
 from jose.exceptions import ExpiredSignatureError, JWTError
 from sqlalchemy import delete, or_, select
 from sqlalchemy.orm import Session
@@ -70,7 +82,9 @@ def _fetch_kakao_profile(code: str, redirect_uri: str | None) -> OAuthProfile:
         timeout=10.0,
     )
     if token_res.status_code != 200:
-        raise HTTPException(status_code=401, detail="카카오 인가 코드 검증에 실패했습니다.")
+        reason = _kakao_error(token_res)
+        logger.warning("Kakao token exchange failed (%s): %s", token_res.status_code, reason)
+        raise HTTPException(status_code=401, detail=f"카카오 인가 코드 검증 실패 — {reason}")
     kakao_access = token_res.json().get("access_token")
 
     me = httpx.get(
@@ -79,7 +93,9 @@ def _fetch_kakao_profile(code: str, redirect_uri: str | None) -> OAuthProfile:
         timeout=10.0,
     )
     if me.status_code != 200:
-        raise HTTPException(status_code=502, detail="카카오 사용자 정보 조회에 실패했습니다.")
+        reason = _kakao_error(me)
+        logger.warning("Kakao userinfo failed (%s): %s", me.status_code, reason)
+        raise HTTPException(status_code=502, detail=f"카카오 사용자 정보 조회 실패 — {reason}")
 
     data = me.json()
     account = data.get("kakao_account", {})

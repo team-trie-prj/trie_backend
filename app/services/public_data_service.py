@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import functools
 import time
 from typing import Any
 
@@ -109,10 +110,15 @@ def assemble_params(catalog: PublicApiCatalog, entities: dict[str, Any]) -> dict
 # ------------------------------------------------- F10: On-demand 실시간 호출
 
 
+@functools.lru_cache(maxsize=1)
+def _http_client() -> httpx.Client:
+    """공용 HTTP 클라이언트 — 요청마다 생성/해제 대신 커넥션 풀 재사용."""
+    return httpx.Client(follow_redirects=True)
+
+
 def _do_request(method: str, url: str, params: dict, timeout: float) -> tuple[int, Any]:
     """실 HTTP 호출 (테스트에서 monkeypatch 지점)."""
-    with httpx.Client(timeout=timeout, follow_redirects=True) as client:
-        res = client.request(method, url, params=params)
+    res = _http_client().request(method, url, params=params, timeout=timeout)
     try:
         payload = res.json()
     except Exception:  # noqa: BLE001 — JSON 아님(XML/텍스트)

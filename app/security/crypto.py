@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import base64
+import functools
 import hashlib
 
 from cryptography.fernet import Fernet
@@ -14,7 +15,9 @@ from cryptography.fernet import Fernet
 from ..config import get_settings
 
 
+@functools.lru_cache(maxsize=1)
 def _fernet() -> Fernet:
+    """Fernet 인스턴스 캐시 — 호출마다 키 파생/객체 생성 방지."""
     settings = get_settings()
     key = settings.app_encryption_key
     if not key:

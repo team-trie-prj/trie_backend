@@ -6,12 +6,13 @@ AI 추론과 무관하며 vikira 파이프라인을 호출하지 않는다.
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 
 import httpx
 from fastapi import HTTPException
 from jose.exceptions import ExpiredSignatureError, JWTError
-from sqlalchemy import select
+from sqlalchemy import delete, or_, select
 from sqlalchemy.orm import Session
 
 from ..config import get_settings
@@ -22,6 +23,22 @@ from ..security.jwt import (
     create_refresh_token,
     decode_token,
 )
+from ..utils import utcnow
+
+
+def _hash_token(token: str) -> str:
+    """리프레시 토큰은 DB 에 SHA-256 해시로만 저장한다(유출 대비, 평문 금지)."""
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+def _purge_stale_tokens(db: Session, user_id: int) -> None:
+    """만료·폐기된 리프레시 토큰 정리 — 테이블 무한 증가 방지."""
+    db.execute(
+        delete(RefreshToken).where(
+            RefreshToken.user_id == user_id,
+            or_(RefreshToken.revoked.is_(True), RefreshToken.expired_at < utcnow()),
+        )
+    )
 
 
 @dataclass
@@ -103,10 +120,15 @@ def login_with_kakao(
     """카카오 로그인 전체 플로우 → (user, access, refresh, expires_in)."""
     prof = _fetch_kakao_profile(code, redirect_uri)
     user = _upsert_user(db, prof)
+    _purge_stale_tokens(db, user.id)
 
     access_token, expires_in = create_access_token(user.id)
     refresh_token, refresh_exp = create_refresh_token(user.id)
-    db.add(RefreshToken(user_id=user.id, token=refresh_token, expired_at=refresh_exp))
+    db.add(
+        RefreshToken(
+            user_id=user.id, token=_hash_token(refresh_token), expired_at=refresh_exp
+        )
+    )
     db.commit()
     db.refresh(user)
     return user, access_token, refresh_token, expires_in
@@ -124,9 +146,13 @@ def refresh_access_token(db: Session, refresh_token: str) -> tuple[str, int]:
     if payload.get("type") != REFRESH:
         raise HTTPException(status_code=401, detail="리프레시 토큰이 아닙니다.")
 
-    row = db.scalar(select(RefreshToken).where(RefreshToken.token == refresh_token))
+    row = db.scalar(
+        select(RefreshToken).where(RefreshToken.token == _hash_token(refresh_token))
+    )
     if row is None or row.revoked:
         raise HTTPException(status_code=401, detail="폐기되었거나 알 수 없는 리프레시 토큰입니다.")
+    if row.expired_at < utcnow():  # JWT exp 와 별개의 DB 측 2차 방어
+        raise HTTPException(status_code=401, detail="리프레시 토큰이 만료되었습니다.")
 
     access_token, expires_in = create_access_token(int(payload["sub"]))
     return access_token, expires_in

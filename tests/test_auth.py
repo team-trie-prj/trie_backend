@@ -2,41 +2,12 @@
 
 kakao_client_id 미설정 → resolved_auth_provider == "mock" 로 폴백되어
 실제 카카오 호출 없이 로그인/갱신/로그아웃 전 플로우를 검증한다.
+(client/db 픽스처는 tests/conftest.py 공용 사용)
 """
 
 from __future__ import annotations
 
-import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
-
-from app.database import Base, get_db
-from app.main import app
-
-
-@pytest.fixture()
-def client():
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    TestingSessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
-    Base.metadata.create_all(bind=engine)
-
-    def _override_get_db():
-        db = TestingSessionLocal()
-        try:
-            yield db
-        finally:
-            db.close()
-
-    app.dependency_overrides[get_db] = _override_get_db
-    with TestClient(app) as c:
-        yield c
-    app.dependency_overrides.clear()
+from sqlalchemy import select
 
 
 def test_kakao_login_issues_tokens_and_creates_user(client):
@@ -82,3 +53,34 @@ def test_refresh_rejects_garbage_token(client):
 
 def test_logout_requires_auth(client):
     assert client.post("/auth/logout").status_code == 401
+
+
+def test_refresh_token_stored_hashed_not_plaintext(client, db):
+    """리프레시 토큰은 DB 에 SHA-256 해시로만 저장(평문 금지)."""
+    from app.models import RefreshToken
+
+    login = client.post("/auth/kakao", json={"code": "hash-check"}).json()
+    raw = login["refresh_token"]
+    rows = db.scalars(select(RefreshToken)).all()
+    assert rows
+    assert all(r.token != raw for r in rows)      # 평문 미저장
+    assert all(len(r.token) == 64 for r in rows)  # sha256 hexdigest
+    # 해시 저장 상태에서도 갱신 플로우 정상
+    assert client.post("/auth/refresh", json={"refresh_token": raw}).status_code == 200
+
+
+def test_stale_tokens_purged_on_login(client, db):
+    """로그인 시 만료·폐기 토큰 정리 → 테이블 무한 증가 방지."""
+    from app.models import RefreshToken
+
+    first = client.post("/auth/kakao", json={"code": "purge-1"}).json()
+    client.post(
+        "/auth/logout",
+        headers={"Authorization": f"Bearer {first['access_token']}"},
+    )  # 사용자의 모든 토큰 revoked
+    client.post("/auth/kakao", json={"code": "purge-1"})  # 재로그인 → purge + 신규 1개
+
+    uid = first["user"]["id"]
+    rows = db.scalars(select(RefreshToken).where(RefreshToken.user_id == uid)).all()
+    assert len(rows) == 1
+    assert rows[0].revoked is False

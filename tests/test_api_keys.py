@@ -30,7 +30,7 @@ def test_service_stores_ciphertext_and_decrypts(db):
 
 def test_register_endpoint_masks_secret(client, token):
     r = client.post(
-        "/api/v1/api-keys",
+        "/api-keys",
         headers=_hdr(token),
         json={"name": "k1", "provider": "p", "secret": "SUPER-SECRET-123"},
     )
@@ -41,14 +41,14 @@ def test_register_endpoint_masks_secret(client, token):
 
 
 def test_list_and_delete(client, token):
-    client.post("/api/v1/api-keys", headers=_hdr(token), json={"name": "k2", "secret": "s2secret"})
-    lst = client.get("/api/v1/api-keys", headers=_hdr(token)).json()
+    client.post("/api-keys", headers=_hdr(token), json={"name": "k2", "secret": "s2secret"})
+    lst = client.get("/api-keys", headers=_hdr(token)).json()
     assert any(k["name"] == "k2" for k in lst)
     assert all("s2secret" not in str(k) for k in lst)  # 평문 미노출
-    assert client.delete("/api/v1/api-keys/k2", headers=_hdr(token)).status_code == 200
-    assert client.delete("/api/v1/api-keys/k2", headers=_hdr(token)).status_code == 404
+    assert client.delete("/api-keys/k2", headers=_hdr(token)).status_code == 200
+    assert client.delete("/api-keys/k2", headers=_hdr(token)).status_code == 404
 
 
 def test_requires_auth(client):
-    assert client.get("/api/v1/api-keys").status_code == 401
-    assert client.post("/api/v1/api-keys", json={"name": "x", "secret": "y"}).status_code == 401
+    assert client.get("/api-keys").status_code == 401
+    assert client.post("/api-keys", json={"name": "x", "secret": "y"}).status_code == 401

@@ -28,13 +28,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.include_router(auth.router, prefix="/api/v1")
-app.include_router(api_keys.router, prefix="/api/v1")
-app.include_router(documents.router, prefix="/api/v1")
-app.include_router(public_data.router, prefix="/api/v1")
-app.include_router(sessions.router, prefix="/api/v1")
-app.include_router(search.router, prefix="/api/v1")
-app.include_router(reports.router, prefix="/api/v1")
+app.include_router(auth.router)
+app.include_router(api_keys.router)
+app.include_router(documents.router)
+app.include_router(public_data.router)
+app.include_router(sessions.router)
+app.include_router(search.router)
+app.include_router(reports.router)
 
 
 @app.get("/health", tags=["system"])

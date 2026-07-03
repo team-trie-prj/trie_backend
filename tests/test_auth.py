@@ -40,7 +40,7 @@ def client():
 
 
 def test_kakao_login_issues_tokens_and_creates_user(client):
-    res = client.post("/api/v1/auth/kakao", json={"code": "dummy-1"})
+    res = client.post("/auth/kakao", json={"code": "dummy-1"})
     assert res.status_code == 200, res.text
     body = res.json()
     assert body["token_type"] == "bearer"
@@ -51,34 +51,34 @@ def test_kakao_login_issues_tokens_and_creates_user(client):
 
 
 def test_login_is_idempotent_upsert(client):
-    r1 = client.post("/api/v1/auth/kakao", json={"code": "same-code"})
-    r2 = client.post("/api/v1/auth/kakao", json={"code": "same-code"})
+    r1 = client.post("/auth/kakao", json={"code": "same-code"})
+    r2 = client.post("/auth/kakao", json={"code": "same-code"})
     assert r1.json()["user"]["id"] == r2.json()["user"]["id"]
 
 
 def test_refresh_returns_new_access_token(client):
-    login = client.post("/api/v1/auth/kakao", json={"code": "c2"}).json()
-    res = client.post("/api/v1/auth/refresh", json={"refresh_token": login["refresh_token"]})
+    login = client.post("/auth/kakao", json={"code": "c2"}).json()
+    res = client.post("/auth/refresh", json={"refresh_token": login["refresh_token"]})
     assert res.status_code == 200, res.text
     assert res.json()["access_token"]
 
 
 def test_logout_revokes_refresh_token(client):
-    login = client.post("/api/v1/auth/kakao", json={"code": "c3"}).json()
+    login = client.post("/auth/kakao", json={"code": "c3"}).json()
     out = client.post(
-        "/api/v1/auth/logout",
+        "/auth/logout",
         headers={"Authorization": f"Bearer {login['access_token']}"},
     )
     assert out.status_code == 200, out.text
     # 폐기 후 refresh 는 401
-    again = client.post("/api/v1/auth/refresh", json={"refresh_token": login["refresh_token"]})
+    again = client.post("/auth/refresh", json={"refresh_token": login["refresh_token"]})
     assert again.status_code == 401
 
 
 def test_refresh_rejects_garbage_token(client):
-    res = client.post("/api/v1/auth/refresh", json={"refresh_token": "not-a-jwt"})
+    res = client.post("/auth/refresh", json={"refresh_token": "not-a-jwt"})
     assert res.status_code == 401
 
 
 def test_logout_requires_auth(client):
-    assert client.post("/api/v1/auth/logout").status_code == 401
+    assert client.post("/auth/logout").status_code == 401

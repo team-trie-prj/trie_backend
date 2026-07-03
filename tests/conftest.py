@@ -56,5 +56,5 @@ def client(SessionLocal):
 @pytest.fixture()
 def token(client) -> str:
     """mock 카카오 로그인으로 발급된 access token."""
-    res = client.post("/api/v1/auth/kakao", json={"code": "test-code"})
+    res = client.post("/auth/kakao", json={"code": "test-code"})
     return res.json()["access_token"]

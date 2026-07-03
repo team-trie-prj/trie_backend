@@ -39,7 +39,7 @@ def _hdr(t: str) -> dict:
 
 def test_upload_requires_auth(client):
     r = client.post(
-        "/api/v1/documents",
+        "/documents",
         files=[("files", ("a.txt", b"hello", "text/plain"))],
         data={"domain": "road"},
     )
@@ -51,7 +51,7 @@ def test_multi_upload_and_metadata_sync(client, token):
         ("files", ("a.txt", b"aaa", "text/plain")),
         ("files", ("b.txt", b"bbb", "text/plain")),
     ]
-    r = client.post("/api/v1/documents", headers=_hdr(token), files=files, data={"domain": "road"})
+    r = client.post("/documents", headers=_hdr(token), files=files, data={"domain": "road"})
     assert r.status_code == 200, r.text
     body = r.json()
     assert len(body["items"]) == 2
@@ -63,7 +63,7 @@ def test_multi_upload_and_metadata_sync(client, token):
 
 def test_metadata_persisted_in_db(client, token, db):
     up = client.post(
-        "/api/v1/documents", headers=_hdr(token),
+        "/documents", headers=_hdr(token),
         files=[("files", ("m.txt", b"z", "text/plain"))], data={"domain": "safety"},
     ).json()
     did = up["items"][0]["document_id"]
@@ -77,7 +77,7 @@ def test_metadata_persisted_in_db(client, token, db):
 
 def test_unsupported_ext_goes_to_failed(client, token):
     r = client.post(
-        "/api/v1/documents", headers=_hdr(token),
+        "/documents", headers=_hdr(token),
         files=[("files", ("bad.zip", b"x", "application/zip"))], data={"domain": "etc"},
     )
     assert r.status_code == 200, r.text
@@ -89,13 +89,13 @@ def test_unsupported_ext_goes_to_failed(client, token):
 
 def test_delete_document(client, token):
     up = client.post(
-        "/api/v1/documents", headers=_hdr(token),
+        "/documents", headers=_hdr(token),
         files=[("files", ("a.txt", b"x", "text/plain"))], data={"domain": "etc"},
     ).json()
     did = up["items"][0]["document_id"]
-    assert client.delete(f"/api/v1/documents/{did}", headers=_hdr(token)).status_code == 200
-    assert client.get(f"/api/v1/documents/{did}").status_code == 404
+    assert client.delete(f"/documents/{did}", headers=_hdr(token)).status_code == 200
+    assert client.get(f"/documents/{did}").status_code == 404
 
 
 def test_delete_missing_404(client, token):
-    assert client.delete("/api/v1/documents/99999", headers=_hdr(token)).status_code == 404
+    assert client.delete("/documents/99999", headers=_hdr(token)).status_code == 404

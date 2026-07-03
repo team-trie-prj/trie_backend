@@ -28,25 +28,25 @@ CATALOG = {
 
 
 def test_catalog_requires_auth(client):
-    assert client.post("/api/v1/public-data/catalog", json=CATALOG).status_code == 401
+    assert client.post("/public-data/catalog", json=CATALOG).status_code == 401
 
 
 def test_catalog_crud(client, token):
-    r = client.post("/api/v1/public-data/catalog", headers=_hdr(token), json=CATALOG)
+    r = client.post("/public-data/catalog", headers=_hdr(token), json=CATALOG)
     assert r.status_code == 200, r.text
     cid = r.json()["id"]
     assert r.json()["params_spec"][0]["name"] == "sidoName"
 
     # 중복 등록 → 409
-    assert client.post("/api/v1/public-data/catalog", headers=_hdr(token), json=CATALOG).status_code == 409
+    assert client.post("/public-data/catalog", headers=_hdr(token), json=CATALOG).status_code == 409
 
-    lst = client.get("/api/v1/public-data/catalog").json()
+    lst = client.get("/public-data/catalog").json()
     assert any(c["id"] == cid for c in lst)
-    assert client.get(f"/api/v1/public-data/catalog/{cid}").status_code == 200
-    assert client.get("/api/v1/public-data/catalog?domain=road").json() == []
+    assert client.get(f"/public-data/catalog/{cid}").status_code == 200
+    assert client.get("/public-data/catalog?domain=road").json() == []
 
-    assert client.delete(f"/api/v1/public-data/catalog/{cid}", headers=_hdr(token)).status_code == 200
-    assert client.get(f"/api/v1/public-data/catalog/{cid}").status_code == 404
+    assert client.delete(f"/public-data/catalog/{cid}", headers=_hdr(token)).status_code == 200
+    assert client.get(f"/public-data/catalog/{cid}").status_code == 404
 
 
 # ------------------------------------------------------------------- F9
@@ -100,11 +100,11 @@ def test_assemble_bad_type_422():
 
 @pytest.fixture()
 def catalog_id(client, token):
-    return client.post("/api/v1/public-data/catalog", headers=_hdr(token), json=CATALOG).json()["id"]
+    return client.post("/public-data/catalog", headers=_hdr(token), json=CATALOG).json()["id"]
 
 
 def test_fetch_requires_auth(client, catalog_id):
-    r = client.post(f"/api/v1/public-data/{catalog_id}/fetch", json={"entities": {}})
+    r = client.post(f"/public-data/{catalog_id}/fetch", json={"entities": {}})
     assert r.status_code == 401
 
 
@@ -112,7 +112,7 @@ def test_fetch_extracts_items_and_masks_key(client, token, catalog_id, monkeypat
     from app.services import public_data_service
 
     # F5 연동: 서비스 키 등록 후 카탈로그에 연결
-    client.post("/api/v1/api-keys", headers=_hdr(token), json={"name": "datago", "secret": "REAL-KEY-123"})
+    client.post("/api-keys", headers=_hdr(token), json={"name": "datago", "secret": "REAL-KEY-123"})
     from app.models import PublicApiCatalog
     from app.database import get_db  # noqa: F401
 
@@ -126,10 +126,10 @@ def test_fetch_extracts_items_and_masks_key(client, token, catalog_id, monkeypat
 
     # 카탈로그에 api_key_name 연결 (DB 직접 수정 대신 새 카탈로그 등록)
     cat2 = dict(CATALOG, name="에어코리아-키연동", api_key_name="datago")
-    cid2 = client.post("/api/v1/public-data/catalog", headers=_hdr(token), json=cat2).json()["id"]
+    cid2 = client.post("/public-data/catalog", headers=_hdr(token), json=cat2).json()["id"]
 
     r = client.post(
-        f"/api/v1/public-data/{cid2}/fetch", headers=_hdr(token),
+        f"/public-data/{cid2}/fetch", headers=_hdr(token),
         json={"entities": {"region": "대전"}},
     )
     assert r.status_code == 200, r.text
@@ -149,7 +149,7 @@ def test_fetch_timeout_504(client, token, catalog_id, monkeypatch):
 
     monkeypatch.setattr(public_data_service, "_do_request", raise_timeout)
     r = client.post(
-        f"/api/v1/public-data/{catalog_id}/fetch", headers=_hdr(token),
+        f"/public-data/{catalog_id}/fetch", headers=_hdr(token),
         json={"entities": {"region": "대전"}},
     )
     assert r.status_code == 504
@@ -160,7 +160,7 @@ def test_fetch_upstream_error_502(client, token, catalog_id, monkeypatch):
 
     monkeypatch.setattr(public_data_service, "_do_request", lambda m, u, p, t: (500, "Internal"))
     r = client.post(
-        f"/api/v1/public-data/{catalog_id}/fetch", headers=_hdr(token),
+        f"/public-data/{catalog_id}/fetch", headers=_hdr(token),
         json={"entities": {"region": "대전"}},
     )
     assert r.status_code == 502
@@ -168,6 +168,6 @@ def test_fetch_upstream_error_502(client, token, catalog_id, monkeypatch):
 
 def test_fetch_missing_required_422(client, token, catalog_id):
     r = client.post(
-        f"/api/v1/public-data/{catalog_id}/fetch", headers=_hdr(token), json={"entities": {}}
+        f"/public-data/{catalog_id}/fetch", headers=_hdr(token), json={"entities": {}}
     )
     assert r.status_code == 422

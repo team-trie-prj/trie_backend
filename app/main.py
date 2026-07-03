@@ -7,7 +7,16 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from . import __version__
-from .api import api_keys, auth, documents, public_data, reports, search, sessions
+from .api import (
+    api_keys,
+    auth,
+    document_transport,
+    documents,
+    public_data,
+    reports,
+    search,
+    sessions,
+)
 from .config import get_settings
 from .database import init_db
 
@@ -28,13 +37,17 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# ── 김예담: 기능별 루트 경로 (/auth /documents /api-keys /public-data /sessions) ──
 app.include_router(auth.router)
 app.include_router(api_keys.router)
-app.include_router(documents.router)
+app.include_router(document_transport.router)
 app.include_router(public_data.router)
 app.include_router(sessions.router)
-app.include_router(search.router)
-app.include_router(reports.router)
+
+# ── vikira: 기존 /api/v1 경로 유지 ──
+app.include_router(documents.router, prefix="/api/v1")
+app.include_router(search.router, prefix="/api/v1")
+app.include_router(reports.router, prefix="/api/v1")
 
 
 @app.get("/health", tags=["system"])

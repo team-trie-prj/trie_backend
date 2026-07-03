@@ -1,7 +1,7 @@
 # trie_backend API 명세서
 
 - **버전**: 0.1.0
-- **Base URL**: `http://<host>:8000` · prefix 없음 — 기능별 루트 `/documents` `/search` `/reports` (인증/공공데이터는 [api-spec.md](api-spec.md))
+- **Base URL**: `http://<host>:8000` · API prefix `/api/v1`
 - **형식**: 요청/응답 JSON (파일 업로드는 `multipart/form-data`)
 - **자동 문서**: `/docs` (Swagger UI) · `/redoc` · `/openapi.json` (머신 스펙은 [openapi.json](openapi.json))
 
@@ -42,7 +42,7 @@
 
 ## 2. 문서 수집 (documents) — vikira ①②③⑤
 
-### ✅ POST `/documents/ingest`
+### ✅ POST `/api/v1/documents/ingest`
 비정형 문서를 업로드하면 **파싱 → 시맨틱 청킹 → BGE-m3 임베딩 → ChromaDB 적재**까지 수행하고 메타데이터를 RDBMS에 저장한다.
 
 > 프로덕션 멀티 업로드 통신은 김예담 담당. 본 엔드포인트는 파이프라인 단독 구동용.
@@ -73,10 +73,10 @@
 
 **예시**
 ```bash
-curl -F "file=@지침서.pdf" -F "domain=road" http://localhost:8000/documents/ingest
+curl -F "file=@지침서.pdf" -F "domain=road" http://localhost:8000/api/v1/documents/ingest
 ```
 
-### ✅ GET `/documents`
+### ✅ GET `/api/v1/documents`
 수집된 문서 목록(최신순).
 
 **응답 200** — `DocumentOut[]`
@@ -88,7 +88,7 @@ curl -F "file=@지침서.pdf" -F "domain=road" http://localhost:8000/documents/i
 ]
 ```
 
-### ✅ GET `/documents/{document_id}`
+### ✅ GET `/api/v1/documents/{document_id}`
 단일 문서 조회. **에러**: `404` 없음.
 
 ---
@@ -99,7 +99,7 @@ curl -F "file=@지침서.pdf" -F "domain=road" http://localhost:8000/documents/i
 이미지가 있으면 VLM(Gemini)으로 시각적 맥락을 추출하고, 텍스트 질의와 논리적으로 병합해 통합 쿼리를 만든다.
 CLI: `python -m scripts.analyze_sample --text "..." --image road.png --domain road`
 
-### ✅ POST `/search/analyze`
+### ✅ POST `/api/v1/search/analyze`
 **요청** `multipart/form-data`: `text`(필수), `image`(선택, 이미지 파일), `domain`(선택)
 
 **응답** — `UnifiedQuery`
@@ -143,7 +143,7 @@ CLI: `python -m scripts.agent_sample --text "..."`
 
 ## 5. 통합 검색 — vikira ③④  ·  FE "통합 검색 화면"
 
-### ✅ POST `/search`
+### ✅ POST `/api/v1/search`
 멀티모달 분석 → 에이전트 라우팅 → 하이브리드 검색(**벡터 코사인 + RDBMS 키워드/정규식**) → **Cross-Encoder 재정렬** → **컨텍스트 절삭**까지 한 번에 수행.
 
 **요청** `multipart/form-data`: `text`(필수), `image`(선택), `domain`(선택)
@@ -175,7 +175,7 @@ CLI: `python -m scripts.search_sample --query "..." --auto`
 
 ## 6. 보고서 생성 — vikira ⑤
 
-### ✅ POST `/reports`
+### ✅ POST `/api/v1/reports`
 검색 결과(다중 출처 컨텍스트) + 도메인·보고서 타입별 서식을 결합해 LLM 메타 프롬프팅으로 **Markdown 실무 보고서 초안**을 생성한다.
 
 **요청** `application/json`

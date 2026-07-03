@@ -1,6 +1,6 @@
 # API 명세서 — 김예담 담당 (Python / FastAPI)
 
-- **Base URL**: `http://<host>:8000` · prefix 없음 — 기능별 루트 `/auth` `/documents` `/search` `/reports` `/public-data` `/api-keys` `/sessions`
+- **Base URL**: `http://<host>:8000` · **김예담 API 는 prefix 없음** — 기능별 루트 `/auth` `/documents` `/api-keys` `/public-data` `/sessions` (vikira API 는 `/api/v1` 유지 → [API.md](API.md))
 - **형식**: JSON (업로드는 `multipart/form-data`), **snake_case**
 - **인증**: 보호 API 는 `Authorization: Bearer <access_token>`
 - **에러**: FastAPI 표준 `{ "detail": "<메시지>" }`
@@ -80,7 +80,7 @@
 문서 삭제: **저장 파일 + ChromaDB 벡터(`delete_by_document`) + RDBMS 행(청크 cascade)** 동기 제거.
 **200**: `{ "detail": "deleted", "document_id": 1 }` · **에러** `401` · `404`
 
-> `POST /documents/ingest`(단건)는 vikira 파이프라인 검증용 하니스([API.md](API.md) §2). 프로덕션 통신은 위 `POST /documents`.
+> `POST /api/v1/documents/ingest`(단건)는 vikira 파이프라인 검증용 하니스([API.md](API.md) §2). 프로덕션 통신은 위 루트 `POST /documents`.
 
 ---
 

@@ -242,87 +242,28 @@
         }
       }
     },
-    "/documents/ingest": {
-      "post": {
-        "tags": [
-          "documents"
-        ],
-        "summary": "Ingest Document",
-        "operationId": "ingest_document_documents_ingest_post",
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_ingest_document_documents_ingest_post"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IngestResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/documents": {
-      "get": {
-        "tags": [
-          "documents"
-        ],
-        "summary": "List Documents",
-        "operationId": "list_documents_documents_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/DocumentOut"
-                  },
-                  "type": "array",
-                  "title": "Response List Documents Documents Get"
-                }
-              }
-            }
-          }
-        }
-      },
       "post": {
         "tags": [
-          "documents"
+          "documents(통신)"
         ],
         "summary": "Upload Documents",
-        "description": "비정형 문서(PDF/DOCX) 멀티 업로드 → 검증·저장·수집 + 업로더 메타 동기화.",
+        "description": "비정형 문서(PDF/DOCX) 멀티 업로드 → 검증·저장·수집 + 업로더 메타 동기화(F7).",
         "operationId": "upload_documents_documents_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
         "requestBody": {
+          "required": true,
           "content": {
             "multipart/form-data": {
               "schema": {
                 "$ref": "#/components/schemas/Body_upload_documents_documents_post"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -345,20 +286,68 @@
               }
             }
           }
-        },
-        "security": [
+        }
+      },
+      "get": {
+        "tags": [
+          "documents(통신)"
+        ],
+        "summary": "List Documents",
+        "description": "문서 목록(최신순, domain 필터 선택).",
+        "operationId": "list_documents_documents_get",
+        "parameters": [
           {
-            "HTTPBearer": []
+            "name": "domain",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Domain"
+            }
           }
-        ]
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentOut"
+                  },
+                  "title": "Response List Documents Documents Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/documents/{document_id}": {
       "get": {
         "tags": [
-          "documents"
+          "documents(통신)"
         ],
         "summary": "Get Document",
+        "description": "문서 단건 조회.",
         "operationId": "get_document_documents__document_id__get",
         "parameters": [
           {
@@ -396,10 +385,10 @@
       },
       "delete": {
         "tags": [
-          "documents"
+          "documents(통신)"
         ],
         "summary": "Delete Document",
-        "description": "문서 + 벡터 + 저장 파일 동기 삭제.",
+        "description": "문서 + ChromaDB 벡터 + 저장 파일 동기 삭제.",
         "operationId": "delete_document_documents__document_id__delete",
         "security": [
           {
@@ -709,19 +698,127 @@
         }
       }
     },
-    "/search/analyze": {
+    "/api/v1/documents/ingest": {
+      "post": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Ingest Document",
+        "operationId": "ingest_document_api_v1_documents_ingest_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_ingest_document_api_v1_documents_ingest_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngestResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/documents": {
+      "get": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "List Documents",
+        "operationId": "list_documents_api_v1_documents_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentOut"
+                  },
+                  "type": "array",
+                  "title": "Response List Documents Api V1 Documents Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/documents/{document_id}": {
+      "get": {
+        "tags": [
+          "documents"
+        ],
+        "summary": "Get Document",
+        "operationId": "get_document_api_v1_documents__document_id__get",
+        "parameters": [
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/search/analyze": {
       "post": {
         "tags": [
           "search"
         ],
         "summary": "Analyze Query",
         "description": "② 멀티모달 질의 분석 — 텍스트(+이미지)를 통합 쿼리로 병합.",
-        "operationId": "analyze_query_search_analyze_post",
+        "operationId": "analyze_query_api_v1_search_analyze_post",
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_analyze_query_search_analyze_post"
+                "$ref": "#/components/schemas/Body_analyze_query_api_v1_search_analyze_post"
               }
             }
           },
@@ -751,19 +848,19 @@
         }
       }
     },
-    "/search": {
+    "/api/v1/search": {
       "post": {
         "tags": [
           "search"
         ],
         "summary": "Integrated Search",
         "description": "③④ 통합 검색 — (이미지→VLM) 병합 → 라우팅 → 하이브리드 검색 → 재정렬 → 절삭.",
-        "operationId": "integrated_search_search_post",
+        "operationId": "integrated_search_api_v1_search_post",
         "requestBody": {
           "content": {
             "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/Body_integrated_search_search_post"
+                "$ref": "#/components/schemas/Body_integrated_search_api_v1_search_post"
               }
             }
           },
@@ -793,14 +890,14 @@
         }
       }
     },
-    "/reports": {
+    "/api/v1/reports": {
       "post": {
         "tags": [
           "reports"
         ],
         "summary": "Create Report",
         "description": "⑤ 검색 결과(또는 재검색) 근거로 도메인·타입별 실무 보고서 초안 생성.",
-        "operationId": "create_report_reports_post",
+        "operationId": "create_report_api_v1_reports_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -1082,7 +1179,7 @@
         ],
         "title": "ApiKeyMasked"
       },
-      "Body_analyze_query_search_analyze_post": {
+      "Body_analyze_query_api_v1_search_analyze_post": {
         "properties": {
           "text": {
             "type": "string",
@@ -1110,9 +1207,9 @@
         "required": [
           "text"
         ],
-        "title": "Body_analyze_query_search_analyze_post"
+        "title": "Body_analyze_query_api_v1_search_analyze_post"
       },
-      "Body_ingest_document_documents_ingest_post": {
+      "Body_ingest_document_api_v1_documents_ingest_post": {
         "properties": {
           "file": {
             "type": "string",
@@ -1129,9 +1226,9 @@
         "required": [
           "file"
         ],
-        "title": "Body_ingest_document_documents_ingest_post"
+        "title": "Body_ingest_document_api_v1_documents_ingest_post"
       },
-      "Body_integrated_search_search_post": {
+      "Body_integrated_search_api_v1_search_post": {
         "properties": {
           "text": {
             "type": "string",
@@ -1159,7 +1256,7 @@
         "required": [
           "text"
         ],
-        "title": "Body_integrated_search_search_post"
+        "title": "Body_integrated_search_api_v1_search_post"
       },
       "Body_upload_documents_documents_post": {
         "properties": {

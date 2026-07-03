@@ -13,7 +13,7 @@
 
 ## 통합 방식 = in-process 함수 호출 (NOT REST)
 - 업로드 통신 → `app.services.ingestion.ingest_file(path, db, domain, title)` **직접 호출**.
-- 통합 검색/보고서 → vikira의 `POST /search`, `POST /reports`(또는 `search_service`/`report_service`) **재사용**.
+- 통합 검색/보고서 → vikira의 `POST /api/v1/search`, `POST /api/v1/reports`(또는 `search_service`/`report_service`) **재사용**.
 - 즉, 백엔드는 AI 서버를 HTTP로 호출하지 않는다. 같은 앱의 서비스 함수를 호출한다.
 
 ## 계층 구조 (실제 `app/`)
@@ -36,7 +36,7 @@ app/
 
 ## 원칙
 - AI 추론은 직접 구현하지 않고 **vikira 서비스 호출**.
-- FastAPI 규약 준수: prefix 없이 기능별 루트(`/auth` `/documents` `/search` `/reports` `/public-data`) · snake_case JSON · 에러 `{ "detail": ... }`.
+- FastAPI 규약 준수: **김예담 API 는 기능별 루트**(`/auth` `/documents` `/api-keys` `/public-data` `/sessions`), **vikira API 는 `/api/v1` 유지** · snake_case JSON · 에러 `{ "detail": ... }`.
 - 계층 경계 유지, 유지보수성 우선.
 
 ## 관련 문서

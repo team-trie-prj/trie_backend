@@ -17,9 +17,7 @@ from ..config import get_settings
 from ..database import get_db
 from ..models import KnowledgeDocument
 from ..pipeline.parsing import SUPPORTED_EXTS
-from ..schemas import DocumentOut, IngestResponse, MultiUploadResponse
-from ..security.deps import get_current_user_id
-from ..services import document_service
+from ..schemas import DocumentOut, IngestResponse
 from ..services.ingestion import ingest_file
 
 router = APIRouter(prefix="/documents", tags=["documents"])
@@ -70,28 +68,3 @@ def get_document(document_id: int, db: Session = Depends(get_db)) -> KnowledgeDo
     if doc is None:
         raise HTTPException(status_code=404, detail="문서를 찾을 수 없습니다.")
     return doc
-
-
-# ===== 김예담: 프로덕션 멀티 업로드(F2) + 삭제(F2) + 메타 동기화(F7) =====
-
-
-@router.post("", response_model=MultiUploadResponse)
-def upload_documents(
-    files: list[UploadFile] = File(...),
-    domain: str = Form("etc"),
-    user_id: int = Depends(get_current_user_id),
-    db: Session = Depends(get_db),
-) -> MultiUploadResponse:
-    """비정형 문서(PDF/DOCX) 멀티 업로드 → 검증·저장·수집 + 업로더 메타 동기화."""
-    return document_service.upload_many(db, files, domain, user_id)
-
-
-@router.delete("/{document_id}")
-def delete_document(
-    document_id: int,
-    _uid: int = Depends(get_current_user_id),
-    db: Session = Depends(get_db),
-) -> dict:
-    """문서 + 벡터 + 저장 파일 동기 삭제."""
-    document_service.delete_document(db, document_id)
-    return {"detail": "deleted", "document_id": document_id}

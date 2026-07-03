@@ -11,6 +11,7 @@ import os
 import uuid
 
 from fastapi import HTTPException, UploadFile
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..config import get_settings
@@ -79,10 +80,22 @@ def upload_many(db: Session, files: list[UploadFile], domain: str, uploaded_by: 
     return {"items": items, "failed": failed}
 
 
-def delete_document(db: Session, document_id: int) -> None:
+def list_documents(db: Session, domain: str | None = None) -> list[KnowledgeDocument]:
+    stmt = select(KnowledgeDocument).order_by(KnowledgeDocument.id.desc())
+    if domain:
+        stmt = stmt.where(KnowledgeDocument.domain == domain)
+    return list(db.scalars(stmt).all())
+
+
+def get_document(db: Session, document_id: int) -> KnowledgeDocument:
     doc = db.get(KnowledgeDocument, document_id)
     if doc is None:
         raise HTTPException(status_code=404, detail="문서를 찾을 수 없습니다.")
+    return doc
+
+
+def delete_document(db: Session, document_id: int) -> None:
+    doc = get_document(db, document_id)
 
     # ChromaDB 벡터 제거 (best-effort)
     try:

@@ -3,12 +3,18 @@
 from __future__ import annotations
 
 import os
+import tempfile
 
 # 테스트는 항상 mock provider 사용(.env 에 실제 카카오 키가 있어도 실 API 호출 방지).
 # app 임포트(=get_settings 캐싱) 이전에 환경변수를 비워 mock 으로 강제한다.
 os.environ["KAKAO_CLIENT_ID"] = ""
 os.environ["KAKAO_CLIENT_SECRET"] = ""
 os.environ.setdefault("EMBEDDING_BACKEND", "hashing")
+os.environ.setdefault("LLM_PROVIDER", "mock")
+# 테스트 산출물(chroma/uploads)을 임시 디렉터리로 격리해 레포 오염 방지
+_TEST_TMP = tempfile.mkdtemp(prefix="trie_test_")
+os.environ.setdefault("CHROMA_PERSIST_DIR", os.path.join(_TEST_TMP, "chroma"))
+os.environ.setdefault("UPLOAD_DIR", os.path.join(_TEST_TMP, "uploads"))
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

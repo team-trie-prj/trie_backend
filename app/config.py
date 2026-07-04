@@ -72,6 +72,9 @@ class Settings(BaseSettings):
     # --- Security: 민감정보 암호화 (F5, Fernet) ---
     app_encryption_key: str = ""  # 비면 jwt_secret_key 에서 파생
 
+    # --- Security: 프롬프트 인젝션 1차 필터 ---
+    prompt_injection_filter_enabled: bool = True
+
     # --- Public Data (F10) ---
     public_api_timeout_sec: float = 10.0
 

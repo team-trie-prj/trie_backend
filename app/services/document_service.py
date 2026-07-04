@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from ..config import get_settings
 from ..models import KnowledgeDocument
 from ..pipeline.parsing import SUPPORTED_EXTS
+from ..security.prompt_guard import scan_text
 from ..services.ingestion import ingest_file
 from ..utils import utcnow
 from ..vectorstore import get_vector_store
@@ -63,9 +64,18 @@ def upload_one(db: Session, file: UploadFile, domain: str, uploaded_by: int) -> 
     saved_path = _save_upload(file, ext)
     title = os.path.splitext(file.filename or "")[0]
     result = ingest_file(path=saved_path, db=db, domain=domain, title=title)
-
-    # F7: 업로더/원본파일명/업로드시각 메타 RDBMS 동기화
     doc = db.get(KnowledgeDocument, result.document_id)
+
+    # 시스템 프롬프트 인젝션 1차 필터 (업로드 문서 = RAG 간접 주입 벡터)
+    scan = scan_text(f"{file.filename or ''}\n{(doc.raw_text if doc else '') or ''}")
+    if scan.flagged and get_settings().prompt_injection_filter_enabled:
+        delete_document(db, result.document_id)  # 벡터+파일+행 롤백
+        raise HTTPException(
+            status_code=400,
+            detail=f"프롬프트 인젝션 의심 콘텐츠 차단: {', '.join(scan.matches)}",
+        )
+
+    # F7: 업로더/원본파일명/업로드시각(+인젝션 스캔) 메타 RDBMS 동기화
     if doc is not None:
         meta = dict(doc.meta or {})
         meta.update(
@@ -73,6 +83,7 @@ def upload_one(db: Session, file: UploadFile, domain: str, uploaded_by: int) -> 
                 "uploaded_by": uploaded_by,
                 "original_filename": file.filename,
                 "uploaded_at": utcnow().isoformat(),
+                "injection_scan": scan.as_dict(),
             }
         )
         doc.meta = meta

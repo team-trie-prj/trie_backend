@@ -24,7 +24,7 @@ from starlette.responses import PlainTextResponse
 T = TypeVar("T")
 
 # envelope 를 적용할 김예담 담당 라우트 prefix
-OWNED_PREFIXES = ("/auth", "/documents", "/api-keys", "/public-data", "/sessions")
+OWNED_PREFIXES = ("/auth", "/documents", "/api-keys", "/public-data", "/sessions", "/security")
 
 
 class ApiResponse(BaseModel, Generic[T]):

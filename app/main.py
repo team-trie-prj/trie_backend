@@ -18,6 +18,7 @@ from .api import (
     public_data,
     reports,
     search,
+    security,
     sessions,
 )
 from .config import get_settings
@@ -56,6 +57,7 @@ app.include_router(api_keys.router)
 app.include_router(document_transport.router)
 app.include_router(public_data.router)
 app.include_router(sessions.router)
+app.include_router(security.router)
 
 # ── vikira: 기존 /api/v1 경로 유지 ──
 app.include_router(documents.router, prefix="/api/v1")

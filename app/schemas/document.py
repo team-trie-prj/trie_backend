@@ -38,3 +38,25 @@ class DocumentOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# --- F2 멀티 업로드 (김예담) ---
+class UploadedDocument(BaseModel):
+    document_id: int
+    title: str
+    doc_type: str
+    domain: str
+    status: str
+    chunk_count: int
+    uploaded_by: int | None = None
+    original_filename: str | None = None
+
+
+class UploadFailure(BaseModel):
+    filename: str | None = None
+    detail: str
+
+
+class MultiUploadResponse(BaseModel):
+    items: list[UploadedDocument]
+    failed: list[UploadFailure]

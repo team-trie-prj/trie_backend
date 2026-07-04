@@ -1,4 +1,4 @@
-"""API Key (F5) — 암호화 저장 · 마스킹 · 복호화 · 인증."""
+"""API Key (F5) — 암호화 저장 · 마스킹 · 복호화 · 인증. (응답 envelope)"""
 
 from __future__ import annotations
 
@@ -35,14 +35,13 @@ def test_register_endpoint_masks_secret(client, token):
         json={"name": "k1", "provider": "p", "secret": "SUPER-SECRET-123"},
     )
     assert r.status_code == 200, r.text
-    body = r.json()
-    assert "SUPER-SECRET-123" not in str(body)  # 평문 비노출
-    assert body["secret_preview"].startswith("SUPE")
+    assert "SUPER-SECRET-123" not in r.text  # 평문 비노출(응답 전체)
+    assert r.json()["data"]["secret_preview"].startswith("SUPE")
 
 
 def test_list_and_delete(client, token):
     client.post("/api-keys", headers=_hdr(token), json={"name": "k2", "secret": "s2secret"})
-    lst = client.get("/api-keys", headers=_hdr(token)).json()
+    lst = client.get("/api-keys", headers=_hdr(token)).json()["data"]
     assert any(k["name"] == "k2" for k in lst)
     assert all("s2secret" not in str(k) for k in lst)  # 평문 미노출
     assert client.delete("/api-keys/k2", headers=_hdr(token)).status_code == 200

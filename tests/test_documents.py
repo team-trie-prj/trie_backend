@@ -1,4 +1,4 @@
-"""문서 통신 (F2) + 메타 동기화 (F7) — ingest/vector 는 스텁으로 격리."""
+"""문서 통신 (F2) + 메타 동기화 (F7) — ingest/vector 는 스텁으로 격리. (응답 envelope)"""
 
 from __future__ import annotations
 
@@ -53,19 +53,19 @@ def test_multi_upload_and_metadata_sync(client, token):
     ]
     r = client.post("/documents", headers=_hdr(token), files=files, data={"domain": "road"})
     assert r.status_code == 200, r.text
-    body = r.json()
-    assert len(body["items"]) == 2
-    assert body["failed"] == []
-    assert body["items"][0]["uploaded_by"] >= 1  # F7 업로더 동기화
-    assert body["items"][0]["original_filename"] in ("a.txt", "b.txt")
-    assert body["items"][0]["domain"] == "road"
+    data = r.json()["data"]
+    assert len(data["items"]) == 2
+    assert data["failed"] == []
+    assert data["items"][0]["uploaded_by"] >= 1  # F7 업로더 동기화
+    assert data["items"][0]["original_filename"] in ("a.txt", "b.txt")
+    assert data["items"][0]["domain"] == "road"
 
 
 def test_metadata_persisted_in_db(client, token, db):
     up = client.post(
         "/documents", headers=_hdr(token),
         files=[("files", ("m.txt", b"z", "text/plain"))], data={"domain": "safety"},
-    ).json()
+    ).json()["data"]
     did = up["items"][0]["document_id"]
     from app.models import KnowledgeDocument
 
@@ -84,9 +84,9 @@ def test_upload_too_large_goes_to_failed(client, token, monkeypatch):
         "/documents", headers=_hdr(token),
         files=[("files", ("big.txt", b"x" * 2048, "text/plain"))], data={"domain": "etc"},
     )
-    body = r.json()
-    assert body["items"] == []
-    assert "용량 초과" in body["failed"][0]["detail"]
+    data = r.json()["data"]
+    assert data["items"] == []
+    assert "용량 초과" in data["failed"][0]["detail"]
 
 
 def test_unsupported_ext_goes_to_failed(client, token):
@@ -95,17 +95,17 @@ def test_unsupported_ext_goes_to_failed(client, token):
         files=[("files", ("bad.zip", b"x", "application/zip"))], data={"domain": "etc"},
     )
     assert r.status_code == 200, r.text
-    body = r.json()
-    assert body["items"] == []
-    assert len(body["failed"]) == 1
-    assert "지원하지 않는" in body["failed"][0]["detail"]
+    data = r.json()["data"]
+    assert data["items"] == []
+    assert len(data["failed"]) == 1
+    assert "지원하지 않는" in data["failed"][0]["detail"]
 
 
 def test_delete_document(client, token):
     up = client.post(
         "/documents", headers=_hdr(token),
         files=[("files", ("a.txt", b"x", "text/plain"))], data={"domain": "etc"},
-    ).json()
+    ).json()["data"]
     did = up["items"][0]["document_id"]
     assert client.delete(f"/documents/{did}", headers=_hdr(token)).status_code == 200
     assert client.get(f"/documents/{did}").status_code == 404

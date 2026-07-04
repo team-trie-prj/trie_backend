@@ -3,7 +3,9 @@
 - **Base URL**: `http://<host>:8000` · **김예담 API 는 prefix 없음** — 기능별 루트 `/auth` `/documents` `/api-keys` `/public-data` `/sessions` (vikira API 는 `/api/v1` 유지 → [API.md](API.md))
 - **형식**: JSON (업로드는 `multipart/form-data`), **snake_case**
 - **인증**: 보호 API 는 `Authorization: Bearer <access_token>`
-- **에러**: FastAPI 표준 `{ "detail": "<메시지>" }`
+- **응답 형식**: 모든 응답(성공·실패)을 공통 envelope 로 감쌈 → `{ "success": bool, "code": "<HTTP상태명>", "message": "...", "data": <payload|null> }`. 실제 페이로드는 `data` 아래. (전체 예시는 [api-명세서-notion.md](api-명세서-notion.md))
+  - 성공 `{ "success": true, "code": "OK", ... }` · 실패 `{ "success": false, "code": "UNAUTHORIZED", ... }` (검증 실패는 `422 UNPROCESSABLE_ENTITY`, `data` 에 오류 배열)
+  - ※ vikira `/api/v1/*` 는 기존 FastAPI `{ "detail": ... }` 유지(미변경)
 - **도메인 enum**: `road | safety | traffic | etc`
 - **자동 문서**: `/docs` · `/openapi.json`
 

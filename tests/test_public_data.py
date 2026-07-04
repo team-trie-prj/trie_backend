@@ -1,4 +1,4 @@
-"""공공데이터 (F6 카탈로그 · F9 파라미터 매핑 · F10 On-demand 호출) — 외부 HTTP 는 스텁."""
+"""공공데이터 (F6 카탈로그 · F9 파라미터 매핑 · F10 On-demand 호출) — 외부 HTTP 는 스텁. (응답 envelope)"""
 
 from __future__ import annotations
 
@@ -34,16 +34,19 @@ def test_catalog_requires_auth(client):
 def test_catalog_crud(client, token):
     r = client.post("/public-data/catalog", headers=_hdr(token), json=CATALOG)
     assert r.status_code == 200, r.text
-    cid = r.json()["id"]
-    assert r.json()["params_spec"][0]["name"] == "sidoName"
+    data = r.json()["data"]
+    cid = data["id"]
+    assert data["params_spec"][0]["name"] == "sidoName"
 
     # 중복 등록 → 409
-    assert client.post("/public-data/catalog", headers=_hdr(token), json=CATALOG).status_code == 409
+    dup = client.post("/public-data/catalog", headers=_hdr(token), json=CATALOG)
+    assert dup.status_code == 409
+    assert dup.json()["code"] == "CONFLICT"
 
-    lst = client.get("/public-data/catalog").json()
+    lst = client.get("/public-data/catalog").json()["data"]
     assert any(c["id"] == cid for c in lst)
     assert client.get(f"/public-data/catalog/{cid}").status_code == 200
-    assert client.get("/public-data/catalog?domain=road").json() == []
+    assert client.get("/public-data/catalog?domain=road").json()["data"] == []
 
     assert client.delete(f"/public-data/catalog/{cid}", headers=_hdr(token)).status_code == 200
     assert client.get(f"/public-data/catalog/{cid}").status_code == 404
@@ -100,7 +103,7 @@ def test_assemble_bad_type_422():
 
 @pytest.fixture()
 def catalog_id(client, token):
-    return client.post("/public-data/catalog", headers=_hdr(token), json=CATALOG).json()["id"]
+    return client.post("/public-data/catalog", headers=_hdr(token), json=CATALOG).json()["data"]["id"]
 
 
 def test_fetch_requires_auth(client, catalog_id):
@@ -113,8 +116,6 @@ def test_fetch_extracts_items_and_masks_key(client, token, catalog_id, monkeypat
 
     # F5 연동: 서비스 키 등록 후 카탈로그에 연결
     client.post("/api-keys", headers=_hdr(token), json={"name": "datago", "secret": "REAL-KEY-123"})
-    from app.models import PublicApiCatalog
-    from app.database import get_db  # noqa: F401
 
     captured: dict = {}
 
@@ -124,19 +125,18 @@ def test_fetch_extracts_items_and_masks_key(client, token, catalog_id, monkeypat
 
     monkeypatch.setattr(public_data_service, "_do_request", fake_request)
 
-    # 카탈로그에 api_key_name 연결 (DB 직접 수정 대신 새 카탈로그 등록)
     cat2 = dict(CATALOG, name="에어코리아-키연동", api_key_name="datago")
-    cid2 = client.post("/public-data/catalog", headers=_hdr(token), json=cat2).json()["id"]
+    cid2 = client.post("/public-data/catalog", headers=_hdr(token), json=cat2).json()["data"]["id"]
 
     r = client.post(
         f"/public-data/{cid2}/fetch", headers=_hdr(token),
         json={"entities": {"region": "대전"}},
     )
     assert r.status_code == 200, r.text
-    body = r.json()
-    assert body["items"] == [{"pm10": 41}, {"pm10": 33}]                 # 표준 경로 파싱
+    data = r.json()["data"]
+    assert data["items"] == [{"pm10": 41}, {"pm10": 33}]                 # 표준 경로 파싱
     assert captured["params"]["serviceKey"] == "REAL-KEY-123"            # 실제 호출엔 평문 주입
-    assert body["assembled_params"]["serviceKey"] != "REAL-KEY-123"      # 응답엔 마스킹
+    assert data["assembled_params"]["serviceKey"] != "REAL-KEY-123"      # 응답엔 마스킹
     assert "REAL-KEY-123" not in r.text
     assert captured["params"]["sidoName"] == "대전"                       # F9 매핑 결과 사용
 
@@ -153,6 +153,7 @@ def test_fetch_timeout_504(client, token, catalog_id, monkeypatch):
         json={"entities": {"region": "대전"}},
     )
     assert r.status_code == 504
+    assert r.json()["code"] == "GATEWAY_TIMEOUT"
 
 
 def test_fetch_upstream_error_502(client, token, catalog_id, monkeypatch):

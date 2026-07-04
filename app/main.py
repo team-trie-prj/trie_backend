@@ -6,6 +6,9 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
 from . import __version__
 from .api import (
     api_keys,
@@ -19,6 +22,11 @@ from .api import (
 )
 from .config import get_settings
 from .database import init_db
+from .response import (
+    http_exception_handler,
+    unhandled_exception_handler,
+    validation_exception_handler,
+)
 
 
 @asynccontextmanager
@@ -36,6 +44,11 @@ app = FastAPI(
     description="멀티모달 + 에이전트 기반 하이브리드 RAG 통합 검색 시스템 (BE)",
     lifespan=lifespan,
 )
+
+# 공통 응답 envelope 예외 핸들러 (김예담 경로에만 적용; vikira /api/v1 은 기본 {detail})
+app.add_exception_handler(StarletteHTTPException, http_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(Exception, unhandled_exception_handler)
 
 # ── 김예담: 기능별 루트 경로 (/auth /documents /api-keys /public-data /sessions) ──
 app.include_router(auth.router)

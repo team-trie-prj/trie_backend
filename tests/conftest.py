@@ -2,14 +2,22 @@
 
 from __future__ import annotations
 
-import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
+import os
 
-from app.database import Base, get_db
-from app.main import app
+# 테스트는 항상 mock provider 사용(.env 에 실제 카카오 키가 있어도 실 API 호출 방지).
+# app 임포트(=get_settings 캐싱) 이전에 환경변수를 비워 mock 으로 강제한다.
+os.environ["KAKAO_CLIENT_ID"] = ""
+os.environ["KAKAO_CLIENT_SECRET"] = ""
+os.environ.setdefault("EMBEDDING_BACKEND", "hashing")
+
+import pytest  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
+from sqlalchemy import create_engine  # noqa: E402
+from sqlalchemy.orm import sessionmaker  # noqa: E402
+from sqlalchemy.pool import StaticPool  # noqa: E402
+
+from app.database import Base, get_db  # noqa: E402
+from app.main import app  # noqa: E402
 
 
 @pytest.fixture()
@@ -55,6 +63,6 @@ def client(SessionLocal):
 
 @pytest.fixture()
 def token(client) -> str:
-    """mock 카카오 로그인으로 발급된 access token."""
+    """mock 카카오 로그인으로 발급된 access token (응답 envelope의 data 아래)."""
     res = client.post("/auth/kakao", json={"code": "test-code"})
-    return res.json()["access_token"]
+    return res.json()["data"]["access_token"]

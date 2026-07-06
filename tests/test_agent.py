@@ -102,6 +102,13 @@ def test_run_agent_ambiguous_via_graph():
     assert r.template is not None
 
 
+def test_run_agent_skip_clarify_forces_route():
+    # 모호해도 skip_clarify=True 면 clarify 를 건너뛰고 라우팅 강행
+    r = run_agent("그거 어떻게 해", client=FakeClient(_AMBIGUOUS), threshold=0.5, skip_clarify=True)
+    assert r.route != Route.CLARIFY.value
+    assert r.template is None
+
+
 def test_analyze_query_with_mock_client_defaults():
     # MockLLMClient 는 에이전트 전용 필드가 없음 → 안전한 기본값으로 수렴
     a = analyze_query("교통 정체 원인", client=MockLLMClient())

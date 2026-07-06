@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Header
 from sqlalchemy.orm import Session
 
 from ..agent import run_agent
@@ -16,8 +16,15 @@ router = APIRouter(tags=["reports"])
 
 
 @router.post("/reports", response_model=ReportResponse)
-def create_report(req: ReportRequest, db: Session = Depends(get_db)) -> dict:
-    """⑤ 검색 결과(또는 재검색) 근거로 도메인·타입별 실무 보고서 초안 생성."""
+def create_report(
+    req: ReportRequest,
+    x_session_id: str | None = Header(None),
+    db: Session = Depends(get_db),
+) -> dict:
+    """⑤ 검색 결과(또는 재검색) 근거로 도메인·타입별 실무 보고서 초안 생성.
+
+    session_id 우선순위: 요청 body > X-Session-Id 헤더 > 서버 생성.
+    """
     if req.hits:
         hits = [
             SearchHit(
@@ -35,5 +42,5 @@ def create_report(req: ReportRequest, db: Session = Depends(get_db)) -> dict:
 
     return generate_report(
         req.query, hits, domain=req.domain, report_type=req.report_type,
-        session_id=req.session_id, db=db,
+        session_id=req.session_id or x_session_id, db=db,
     )

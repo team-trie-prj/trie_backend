@@ -75,3 +75,18 @@ def test_report_types_include_fe_values():
     assert _report_meta("inspection_log")["name"] == "점검 일지"
     assert _report_meta("civil_brief")["name"] == "민원 대응 브리핑"
     assert _report_meta("analysis")["name"] == "분석 보고서"
+
+
+class _BoomLLM:
+    def generate_text(self, *args, **kwargs):
+        raise RuntimeError("LLM down")
+
+    def generate_vision(self, *args, **kwargs):
+        raise RuntimeError("LLM down")
+
+
+def test_generate_report_survives_llm_error(db):
+    # LLM 실패 시 500 대신 안내 초안 반환 (동반 장애 방지)
+    out = generate_report("포트홀 보고", _hits(), db=db, client=_BoomLLM())
+    assert out["id"] is not None
+    assert "실패" in out["content"]

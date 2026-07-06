@@ -54,6 +54,7 @@ class Settings(BaseSettings):
     llm_model: str = "gemini-2.5-flash"
     vlm_model: str = "gemini-2.5-flash"
     gemini_api_key: str = ""
+    llm_timeout_sec: float = 60.0  # LLM/VLM 호출 타임아웃 (S7: 60초 초과 시 하이브리드 폴백)
 
     # --- Auth: OAuth2 (Kakao) --- (김예담)
     auth_provider: str = "kakao"  # kakao | mock  (client_id 없으면 mock 자동 폴백)

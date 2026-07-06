@@ -109,6 +109,29 @@ def test_run_agent_skip_clarify_forces_route():
     assert r.template is None
 
 
+class _BoomClient:
+    """모든 LLM 호출이 실패하는 클라이언트 (에러 주입)."""
+
+    def generate_text(self, *args, **kwargs):
+        raise RuntimeError("LLM down")
+
+    def generate_vision(self, *args, **kwargs):
+        raise RuntimeError("LLM down")
+
+
+def test_run_agent_falls_back_to_hybrid_on_llm_error():
+    # S7 (DEF-BE-03): LLM 판단 에러 → 500 대신 하이브리드 폴백
+    r = run_agent("포트홀 보수 절차 규정", client=_BoomClient(), threshold=0.5)
+    assert r.route == Route.HYBRID.value
+    assert r.template is None
+    assert r.keywords  # 질의에서 규칙 기반 추출
+
+
+def test_run_agent_falls_back_even_with_skip_clarify():
+    r = run_agent("안전모 미착용 사례", client=_BoomClient(), skip_clarify=True)
+    assert r.route == Route.HYBRID.value
+
+
 def test_analyze_query_with_mock_client_defaults():
     # MockLLMClient 는 에이전트 전용 필드가 없음 → 안전한 기본값으로 수렴
     a = analyze_query("교통 정체 원인", client=MockLLMClient())

@@ -53,7 +53,12 @@ def db(SessionLocal):
 
 
 @pytest.fixture()
-def client(SessionLocal):
+def client(SessionLocal, monkeypatch):
+    import app.database as database_module
+
+    # 미들웨어(app.database.SessionLocal 직접 사용)도 테스트 DB 를 쓰도록 재바인딩
+    monkeypatch.setattr(database_module, "SessionLocal", SessionLocal)
+
     def _override_get_db():
         d = SessionLocal()
         try:

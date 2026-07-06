@@ -76,6 +76,9 @@ class Settings(BaseSettings):
     # --- Security: 프롬프트 인젝션 1차 필터 ---
     prompt_injection_filter_enabled: bool = True
 
+    # --- 검색 이력 (F8 확장, FNC-HIS-01) ---
+    history_max_per_user: int = 50  # 사용자별 이력 상한(초과 시 최고참부터 FIFO 삭제)
+
     # --- Public Data (F10) ---
     public_api_timeout_sec: float = 10.0
 

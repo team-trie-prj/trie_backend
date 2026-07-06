@@ -427,7 +427,36 @@
 
 **Response**
 
-`200 OK` · ✅ **성공** — `data` 는 카탈로그 배열(등록 응답 `data` 구조)
+`200 OK` · ✅ **성공** — `data` 는 카탈로그 배열(항목 없으면 `[]`)
+
+```json
+{
+  "success": true,
+  "code": "OK",
+  "message": "요청 성공",
+  "data": [
+    {
+      "id": 1,
+      "name": "에어코리아 시도별 실시간 대기오염도",
+      "provider": "한국환경공단",
+      "domain": "traffic",
+      "endpoint": "http://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getCtprvnRltmMesureDnsty",
+      "http_method": "GET",
+      "params_spec": [
+        { "name": "sidoName", "type": "str", "required": true, "default": null, "map_from": "region" },
+        { "name": "returnType", "type": "str", "required": false, "default": "json", "map_from": null },
+        { "name": "numOfRows", "type": "int", "required": false, "default": 5, "map_from": null }
+      ],
+      "api_key_name": "data_go_kr",
+      "api_key_param": "serviceKey",
+      "description": "시도별 실시간 PM10/PM2.5",
+      "created_at": "2026-07-03T10:00:00"
+    }
+  ]
+}
+```
+
+> 빈 목록: `{ "success": true, "code": "OK", "message": "요청 성공", "data": [] }`
 
 `401 / 404 / 409` · ⚪ **해당 없음** · `500` · ❌ **실패**
 
@@ -440,6 +469,31 @@
 **Response**
 
 `200 OK` · ✅ **성공** — `data` 는 카탈로그 객체
+
+```json
+{
+  "success": true,
+  "code": "OK",
+  "message": "요청 성공",
+  "data": {
+    "id": 1,
+    "name": "에어코리아 시도별 실시간 대기오염도",
+    "provider": "한국환경공단",
+    "domain": "traffic",
+    "endpoint": "http://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getCtprvnRltmMesureDnsty",
+    "http_method": "GET",
+    "params_spec": [
+      { "name": "sidoName", "type": "str", "required": true, "default": null, "map_from": "region" },
+      { "name": "returnType", "type": "str", "required": false, "default": "json", "map_from": null },
+      { "name": "numOfRows", "type": "int", "required": false, "default": 5, "map_from": null }
+    ],
+    "api_key_name": "data_go_kr",
+    "api_key_param": "serviceKey",
+    "description": "시도별 실시간 PM10/PM2.5",
+    "created_at": "2026-07-03T10:00:00"
+  }
+}
+```
 
 `404 Not Found` · ❌ **실패**
 
@@ -586,3 +640,70 @@
 ```
 
 `401 Unauthorized` · ❌ **실패** · `422` · ❌ **실패**(text 누락) · `404 / 409` · ⚪ **해당 없음** · `500` · ❌ **실패**
+
+---
+
+# 7. 검색 이력 (History, FNC-HIS-01)
+
+> 검색(`/api/v1/search`)·보고서(`/api/v1/reports`)는 **앞단 미들웨어가 자동 로깅**(session_uuid=`X-Session-Id` 헤더→응답 session_id, 사용자=`Authorization`). 검색 스냅샷(입력·VLM 분석·공공 통계)과 보고서 스냅샷을 동일 UUID 에 매핑 저장. 아래는 조회/복원/삭제/명시기록 — **모두 인증 필요**. 사용자당 **50개 FIFO 상한**. 복원 응답은 **`Cache-Control: no-store`**(1회성 On-demand).
+
+## `GET /history` — 이력 목록 (사이드바)
+
+**인증**: 필요 · **Headers**: `Authorization: Bearer {accessToken}`
+
+**Response**
+
+`200 OK` · ✅ **성공** (최신순)
+
+```json
+{
+  "success": true, "code": "OK", "message": "요청 성공",
+  "data": [ { "session_uuid": "9f1c...", "query": "포트홀 보수 절차", "domain": "road", "created_at": "2026-07-05T10:00:00" } ]
+}
+```
+
+`401 Unauthorized` · ❌ **실패** · `404 / 409` · ⚪ **해당 없음** · `500` · ❌ **실패**
+
+## `GET /history/{session_uuid}` — 스냅샷 복원 (질의 + 검색 결과)
+
+**인증**: 필요
+
+**Response**
+
+`200 OK` · ✅ **성공**
+
+```json
+{
+  "success": true, "code": "OK", "message": "요청 성공",
+  "data": {
+    "session_uuid": "9f1c...", "query": "포트홀 보수 절차", "domain": "road",
+    "result_snapshot": { "agent": { "visual_context": "…VLM 분석…" }, "search": { "hits": [ { "source": "public_api", "stats": {} } ] } },
+    "report_snapshot": { "id": 5, "content": "# 점검 일지\n...", "report_type": "inspection_log" },
+    "created_at": "2026-07-05T10:00:00"
+  }
+}
+```
+
+`404 Not Found` · ❌ **실패** — 이력 없음(타 사용자 포함)
+
+```json
+{ "success": false, "code": "NOT_FOUND", "message": "검색 이력을 찾을 수 없습니다.", "data": null }
+```
+
+`401 Unauthorized` · ❌ **실패** · `409` · ⚪ **해당 없음** · `500` · ❌ **실패**
+
+## `POST /history` — 명시적 기록 (선택; 미들웨어 자동로깅과 session_uuid 기준 upsert)
+
+**인증**: 필요
+
+**Request Body**
+
+```json
+{ "session_uuid": "9f1c...", "query": "포트홀 보수 절차", "domain": "road", "result_snapshot": { "search": { "hits": [] } } }
+```
+
+**Response**: `200 OK` · ✅ **성공**(HistoryDetail) · `401` ❌ · `422` ❌(session_uuid/query 누락)
+
+## `DELETE /history/{session_uuid}` — 삭제
+
+**인증**: 필요 · **Response**: `200 OK` · ✅ `{ "data": { "session_uuid": "9f1c..." } }` · `404` ❌ · `401` ❌

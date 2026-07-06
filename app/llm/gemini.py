@@ -9,11 +9,18 @@ import mimetypes
 
 
 class GeminiClient:
-    def __init__(self, api_key: str, model: str, vlm_model: str | None = None) -> None:
+    def __init__(
+        self, api_key: str, model: str, vlm_model: str | None = None, timeout_sec: float = 60.0
+    ) -> None:
         from google import genai
+        from google.genai import types
 
         self._genai = genai
-        self.client = genai.Client(api_key=api_key)
+        # timeout 은 밀리초 (S7: 60초 초과 시 예외 발생 → 상위에서 하이브리드 폴백)
+        self.client = genai.Client(
+            api_key=api_key,
+            http_options=types.HttpOptions(timeout=int(timeout_sec * 1000)),
+        )
         self.model = model
         self.vlm_model = vlm_model or model
 

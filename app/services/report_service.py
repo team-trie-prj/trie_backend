@@ -93,10 +93,17 @@ def generate_report(
     else:
         client = client or get_llm_client()
         context = _build_context(hits)
-        content = client.generate_text(
-            _report_prompt(query, context, report_type),
-            system=_system_prompt(domain, report_type),
-        )
+        try:
+            content = client.generate_text(
+                _report_prompt(query, context, report_type),
+                system=_system_prompt(domain, report_type),
+            )
+        except Exception:  # noqa: BLE001 — LLM 실패 시 500 대신 안내 초안
+            content = (
+                "# 보고서 생성 일시 실패\n\n"
+                "LLM 응답 오류로 초안을 자동 생성하지 못했습니다. "
+                "아래 참조 근거로 수동 작성하거나 잠시 후 다시 시도하세요."
+            )
 
     sources = [
         {"document_id": h.document_id, "chunk_index": h.chunk_index, "source": h.source}

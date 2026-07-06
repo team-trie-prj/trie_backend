@@ -31,6 +31,7 @@ def get_llm_client() -> LLMClient:
             api_key=settings.gemini_api_key,
             model=settings.llm_model,
             vlm_model=settings.vlm_model,
+            timeout_sec=settings.llm_timeout_sec,
         )
 
     if settings.llm_provider == "ollama":

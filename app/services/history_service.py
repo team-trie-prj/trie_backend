@@ -43,6 +43,34 @@ def record(
     return row
 
 
+def record_report(
+    db: Session,
+    session_uuid: str,
+    report_snapshot: Any,
+    user_id: int | None = None,
+    query: str | None = None,
+) -> SearchHistory:
+    """보고서 완료를 동일 session_uuid 이력에 부착(없으면 생성). 검색 스냅샷은 보존."""
+    row = db.scalar(select(SearchHistory).where(SearchHistory.session_uuid == session_uuid))
+    if row is None:
+        row = SearchHistory(
+            session_uuid=session_uuid, user_id=user_id, query=query or "",
+            domain=None, result_snapshot={}, report_snapshot=report_snapshot or {},
+        )
+        db.add(row)
+    else:
+        if report_snapshot:
+            row.report_snapshot = report_snapshot
+        if user_id is not None and row.user_id is None:
+            row.user_id = user_id
+        if query and not row.query:
+            row.query = query
+    db.commit()
+    db.refresh(row)
+    _fifo_trim(db, row.user_id)
+    return row
+
+
 def _fifo_trim(db: Session, user_id: int | None) -> None:
     """사용자별 상한 초과 시 오래된 항목부터 삭제(FIFO)."""
     if user_id is None:

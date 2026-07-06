@@ -23,6 +23,7 @@ class SearchHistory(Base):
     user_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
     query: Mapped[str] = mapped_column(Text)
     domain: Mapped[str | None] = mapped_column(String(16), nullable=True)
-    result_snapshot: Mapped[dict] = mapped_column(JSON, default=dict)
+    result_snapshot: Mapped[dict] = mapped_column(JSON, default=dict)   # 검색 스냅샷(입력·VLM 분석·공공 통계 포함)
+    report_snapshot: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # 보고서 스냅샷
     created_at: Mapped[datetime.datetime] = mapped_column(default=utcnow, index=True)
     updated_at: Mapped[datetime.datetime] = mapped_column(default=utcnow, onupdate=utcnow)

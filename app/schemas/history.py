@@ -28,6 +28,7 @@ class HistoryDetail(BaseModel):
     query: str
     domain: str | None = None
     result_snapshot: Any = None
+    report_snapshot: Any = None
     created_at: datetime.datetime
 
 

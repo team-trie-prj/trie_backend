@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 
 from ..database import get_db
@@ -16,23 +16,29 @@ from ..services import history_service
 
 router = APIRouter(prefix="/history", tags=["history"])
 
+_NO_STORE = "no-store, no-cache, must-revalidate"
+
 
 @router.get("", response_model=ApiResponse[list[HistoryItem]])
 def list_history(
+    response: Response,
     user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ) -> dict:
-    """현재 사용자의 검색 이력 목록(최신순)."""
+    """현재 사용자의 검색 이력 목록(최신순). 캐시 무효화."""
+    response.headers["Cache-Control"] = _NO_STORE
     return ok(history_service.list_for_user(db, user_id))
 
 
 @router.get("/{session_uuid}", response_model=ApiResponse[HistoryDetail])
 def get_history(
     session_uuid: str,
+    response: Response,
     user_id: int = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ) -> dict:
-    """세션 스냅샷 복원(질의 + 검색 결과)."""
+    """세션 스냅샷 복원(질의 + 검색 결과 + 보고서). 캐시 무효화 후 1회성(On-demand) 조회."""
+    response.headers["Cache-Control"] = _NO_STORE
     return ok(history_service.get_for_user(db, session_uuid, user_id))
 
 

@@ -586,3 +586,69 @@
 ```
 
 `401 Unauthorized` · ❌ **실패** · `422` · ❌ **실패**(text 누락) · `404 / 409` · ⚪ **해당 없음** · `500` · ❌ **실패**
+
+---
+
+# 7. 검색 이력 (History, FNC-HIS-01)
+
+> 검색은 vikira `/api/v1/search` **앞단 미들웨어가 자동 로깅**(session_uuid=`X-Session-Id` 헤더, 사용자=`Authorization`). 아래는 조회/복원/삭제/명시기록 — **모두 인증 필요**. 사용자별 **FIFO 상한**(기본 100).
+
+## `GET /history` — 이력 목록 (사이드바)
+
+**인증**: 필요 · **Headers**: `Authorization: Bearer {accessToken}`
+
+**Response**
+
+`200 OK` · ✅ **성공** (최신순)
+
+```json
+{
+  "success": true, "code": "OK", "message": "요청 성공",
+  "data": [ { "session_uuid": "9f1c...", "query": "포트홀 보수 절차", "domain": "road", "created_at": "2026-07-05T10:00:00" } ]
+}
+```
+
+`401 Unauthorized` · ❌ **실패** · `404 / 409` · ⚪ **해당 없음** · `500` · ❌ **실패**
+
+## `GET /history/{session_uuid}` — 스냅샷 복원 (질의 + 검색 결과)
+
+**인증**: 필요
+
+**Response**
+
+`200 OK` · ✅ **성공**
+
+```json
+{
+  "success": true, "code": "OK", "message": "요청 성공",
+  "data": {
+    "session_uuid": "9f1c...", "query": "포트홀 보수 절차", "domain": "road",
+    "result_snapshot": { "agent": { }, "search": { "hits": [ ] } },
+    "created_at": "2026-07-05T10:00:00"
+  }
+}
+```
+
+`404 Not Found` · ❌ **실패** — 이력 없음(타 사용자 포함)
+
+```json
+{ "success": false, "code": "NOT_FOUND", "message": "검색 이력을 찾을 수 없습니다.", "data": null }
+```
+
+`401 Unauthorized` · ❌ **실패** · `409` · ⚪ **해당 없음** · `500` · ❌ **실패**
+
+## `POST /history` — 명시적 기록 (선택; 미들웨어 자동로깅과 session_uuid 기준 upsert)
+
+**인증**: 필요
+
+**Request Body**
+
+```json
+{ "session_uuid": "9f1c...", "query": "포트홀 보수 절차", "domain": "road", "result_snapshot": { "search": { "hits": [] } } }
+```
+
+**Response**: `200 OK` · ✅ **성공**(HistoryDetail) · `401` ❌ · `422` ❌(session_uuid/query 누락)
+
+## `DELETE /history/{session_uuid}` — 삭제
+
+**인증**: 필요 · **Response**: `200 OK` · ✅ `{ "data": { "session_uuid": "9f1c..." } }` · `404` ❌ · `401` ❌

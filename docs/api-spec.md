@@ -28,6 +28,8 @@
 | F6 공공 카탈로그 목록/단건/삭제 | `GET·DELETE /public-data/catalog[/{id}]` | ✅ |
 | F9·F10 공공 On-demand 호출 | `POST /public-data/{catalog_id}/fetch` | ✅ |
 | F8 세션 UUID 발급 | `POST /sessions` | ✅ |
+| F8+ 이력 목록/복원/삭제 | `GET·DELETE /history[/{session_uuid}]`, `POST /history` | ✅ |
+| F8+ 검색 이력 자동 로깅 | (vikira `/search` 앞단 미들웨어, 비침투) | ✅ |
 
 > F7(RDBMS 메타데이터 동기화)은 별도 엔드포인트가 아니라 F2 업로드/삭제 시 업로더·시각·도메인 메타를 PostgreSQL 에 동기화하는 **횡단 기능**이다.
 

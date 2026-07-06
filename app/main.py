@@ -15,6 +15,7 @@ from .api import (
     auth,
     document_transport,
     documents,
+    history,
     public_data,
     reports,
     search,
@@ -28,6 +29,7 @@ from .response import (
     unhandled_exception_handler,
     validation_exception_handler,
 )
+from .security.history_middleware import SearchHistoryMiddleware
 from .security.injection_middleware import PromptInjectionMiddleware
 
 
@@ -52,7 +54,9 @@ app.add_exception_handler(StarletteHTTPException, http_exception_handler)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(Exception, unhandled_exception_handler)
 
-# 질의 프롬프트 인젝션 1차 필터 (vikira 검색/보고서 경로 앞단, 비침투)
+# 검색 이력 자동 로깅 (vikira /search 앞단, 비침투) — 인젝션 필터보다 안쪽(차단된 요청은 미로깅)
+app.add_middleware(SearchHistoryMiddleware)
+# 질의 프롬프트 인젝션 1차 필터 (vikira 검색/보고서 경로 앞단, 비침투) — 바깥
 app.add_middleware(PromptInjectionMiddleware)
 
 # ── 김예담: 기능별 루트 경로 (/auth /documents /api-keys /public-data /sessions) ──
@@ -62,6 +66,7 @@ app.include_router(document_transport.router)
 app.include_router(public_data.router)
 app.include_router(sessions.router)
 app.include_router(security.router)
+app.include_router(history.router)
 
 # ── vikira: 기존 /api/v1 경로 유지 ──
 app.include_router(documents.router, prefix="/api/v1")

@@ -7,7 +7,7 @@ from dataclasses import asdict, dataclass, field
 
 @dataclass
 class SearchHit:
-    source: str  # "vector" | "keyword"
+    source: str  # "vector" | "keyword" | "public_api"
     document_id: int | None
     chunk_index: int | None
     text: str
@@ -15,6 +15,7 @@ class SearchHit:
     domain: str = "etc"
     vector_id: str | None = None
     meta: dict = field(default_factory=dict)
+    stats: dict | None = None  # public_api 수치 데이터(선택)
 
     def key(self) -> tuple:
         """중복 제거용 키 (문서/청크 단위)."""
@@ -23,7 +24,7 @@ class SearchHit:
         return ("dc", self.document_id, self.chunk_index)
 
     def as_dict(self) -> dict:
-        return {
+        out = {
             "source": self.source,
             "document_id": self.document_id,
             "chunk_index": self.chunk_index,
@@ -31,6 +32,9 @@ class SearchHit:
             "domain": self.domain,
             "text": self.text,
         }
+        if self.stats is not None:
+            out["stats"] = self.stats
+        return out
 
 
 @dataclass

@@ -34,11 +34,20 @@ def run_agent(
     image_context: str | None = None,
     client=None,
     threshold: float | None = None,
+    skip_clarify: bool = False,
 ) -> AgentResult:
-    """질의 → (도메인·의도·모호성·라우팅) 최종 결정."""
+    """질의 → (도메인·의도·모호성·라우팅) 최종 결정.
+
+    skip_clarify=True 면 모호 질의여도 재질의(clarify)를 건너뛰고 라우팅을 강행한다
+    (FE의 역제안 1회 스킵 대응).
+    """
     client = client or get_llm_client()
     if threshold is None:
         threshold = get_settings().agent_ambiguity_threshold
+
+    if skip_clarify:
+        analysis = analyze_query(query, domain_hint, image_context, client)
+        return build_route_result(query, analysis)
 
     graph = _try_build_graph(client, threshold)
     if graph is not None:

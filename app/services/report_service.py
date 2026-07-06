@@ -16,14 +16,20 @@ from ..search.schemas import SearchHit
 
 # 보고서 타입별 서식(섹션 구성)
 REPORT_TYPES: dict[str, dict] = {
+    # FE 양식 3종 (safety-check / civil-brief / analysis) 매핑값
     "inspection_log": {
         "name": "점검 일지",
         "sections": ["개요", "점검 내용", "발견 사항", "조치 필요사항"],
     },
-    "complaint_brief": {
+    "civil_brief": {
         "name": "민원 대응 브리핑",
         "sections": ["민원 요지", "현황", "대응 방안", "근거 규정"],
     },
+    "analysis": {
+        "name": "분석 보고서",
+        "sections": ["현황 분석", "원인 추정", "시사점", "결론"],
+    },
+    # 추가 서식(선택)
     "improvement_reco": {
         "name": "개선 권고안",
         "sections": ["문제 정의", "분석", "개선 권고", "기대 효과"],

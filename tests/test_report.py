@@ -67,3 +67,11 @@ def test_generate_report_without_db_skips_persist():
     out = generate_report("x", _hits(), client=FakeLLM())  # db 없음
     assert out["id"] is None
     assert out["content"]
+
+
+def test_report_types_include_fe_values():
+    from app.services.report_service import _report_meta
+
+    assert _report_meta("inspection_log")["name"] == "점검 일지"
+    assert _report_meta("civil_brief")["name"] == "민원 대응 브리핑"
+    assert _report_meta("analysis")["name"] == "분석 보고서"

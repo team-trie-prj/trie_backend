@@ -12,7 +12,7 @@ from .search import SearchHitOut
 class ReportRequest(BaseModel):
     query: str
     domain: str = "etc"
-    # inspection_log | complaint_brief | improvement_reco | situation_brief
+    # inspection_log | civil_brief | analysis | improvement_reco | situation_brief
     report_type: str = "inspection_log"
     session_id: str | None = None
     # 생략 시 서버가 query 로 재검색해 근거를 확보

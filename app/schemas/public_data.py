@@ -44,7 +44,10 @@ class FetchRequest(BaseModel):
 
 
 class FetchResponse(BaseModel):
-    """F10 출력 — 실시간 호출 결과 (서비스 키는 마스킹)."""
+    """F10 출력 — 실시간 호출 결과 (서비스 키는 마스킹).
+
+    source: live(실시간) | local_fallback(장애/타임아웃 시 마지막 성공 스냅샷 우회)
+    """
 
     catalog_id: int
     api_name: str
@@ -55,6 +58,8 @@ class FetchResponse(BaseModel):
     items: list | None = None
     data: Any = None  # items 추출 실패 시 원본(요약)
     elapsed_sec: float
+    source: str = "live"
+    cached_at: datetime.datetime | None = None  # source=local_fallback 일 때 스냅샷 시각
 
 
 class SessionUUIDOut(BaseModel):

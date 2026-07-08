@@ -60,6 +60,12 @@ async def integrated_search(
     session_id = x_session_id or uuid.uuid4().hex
     image_path = await _save_image(image)
 
+    # FNC-HIS-01: 세션 이력에 '연동 이미지'도 남도록 응답에 이미지 메타 포함
+    # (이력 미들웨어가 응답 전체를 result_snapshot 으로 저장 → 복원 시 이미지 재표시 가능)
+    image_meta = (
+        {"path": image_path, "filename": image.filename} if image_path and image else None
+    )
+
     if image_path:
         unified = analyze_multimodal(text, image_path=image_path, domain=domain)
         query, hint, seed_keywords = unified.unified_query, unified.domain_hint, unified.keywords
@@ -68,7 +74,12 @@ async def integrated_search(
 
     decision = run_agent(query, domain_hint=hint, skip_clarify=skip_clarify)
     if decision.route == "clarify":
-        return {"session_id": session_id, "agent": decision.as_dict(), "search": None}
+        return {
+            "session_id": session_id,
+            "image": image_meta,
+            "agent": decision.as_dict(),
+            "search": None,
+        }
 
     result = execute_search(
         query,
@@ -77,4 +88,9 @@ async def integrated_search(
         domain=decision.domain,
         db=db,
     )
-    return {"session_id": session_id, "agent": decision.as_dict(), "search": result.as_dict()}
+    return {
+        "session_id": session_id,
+        "image": image_meta,
+        "agent": decision.as_dict(),
+        "search": result.as_dict(),
+    }

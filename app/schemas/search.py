@@ -54,5 +54,6 @@ class SearchResultOut(BaseModel):
 
 class SearchResponse(BaseModel):
     session_id: str | None = None
+    image: dict | None = None  # 첨부 이미지 메타 {path, filename} — 이력 복원용
     agent: AgentOut
     search: SearchResultOut | None = None

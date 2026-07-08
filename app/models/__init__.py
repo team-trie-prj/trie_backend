@@ -11,6 +11,7 @@
 from .api_key import ApiKey
 from .knowledge import DocStatus, DocumentChunk, Domain, KnowledgeDocument
 from .public_catalog import PublicApiCatalog
+from .public_fetch_cache import PublicFetchCache
 from .report import GeneratedReport
 from .search_history import SearchHistory
 from .user import RefreshToken, User
@@ -27,5 +28,6 @@ __all__ = [
     "RefreshToken",
     "ApiKey",
     "PublicApiCatalog",
+    "PublicFetchCache",
     "SearchHistory",
 ]

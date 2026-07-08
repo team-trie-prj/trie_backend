@@ -76,11 +76,15 @@ class Settings(BaseSettings):
     # --- Security: 프롬프트 인젝션 1차 필터 ---
     prompt_injection_filter_enabled: bool = True
 
+    # --- CORS (FE 연동 허용 오리진 화이트리스트, 콤마 구분) ---
+    cors_allow_origins: str = "http://localhost:5173"
+
     # --- 검색 이력 (F8 확장, FNC-HIS-01) ---
     history_max_per_user: int = 50  # 사용자별 이력 상한(초과 시 최고참부터 FIFO 삭제)
 
     # --- Public Data (F10) ---
     public_api_timeout_sec: float = 10.0
+    public_data_service_key: str = ""  # data.go.kr 서비스키(Decoding). 실값은 .env(커밋 금지), 목록조회/카탈로그 시드용
 
     @property
     def resolved_auth_provider(self) -> str:

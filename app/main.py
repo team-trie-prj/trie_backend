@@ -5,6 +5,7 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -58,6 +59,16 @@ app.add_exception_handler(Exception, unhandled_exception_handler)
 app.add_middleware(SearchHistoryMiddleware)
 # 질의 프롬프트 인젝션 1차 필터 (vikira 검색/보고서 경로 앞단, 비침투) — 바깥
 app.add_middleware(PromptInjectionMiddleware)
+
+# CORS (FE 연동) — 최외곽 등록: preflight(OPTIONS) 선처리 + 모든 응답(에러 포함)에 헤더 부여
+_cors_origins = [o.strip() for o in settings.cors_allow_origins.split(",") if o.strip()]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ── 김예담: 기능별 루트 경로 (/auth /documents /api-keys /public-data /sessions) ──
 app.include_router(auth.router)
